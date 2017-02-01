@@ -1,8 +1,8 @@
 import polyfills from 'babel-polyfill';
 
-import TextDocument from './text-document';
-import TextElement from './text-element';
-import { regexpParserFactory } from './text-parsers';
+import TextDocument from './document';
+import TextElement from './element';
+import { regexpParserFactory } from './parsers';
 
 export { TextDocument, TextElement, regexpParserFactory };
 
@@ -13,10 +13,5 @@ export default {
 };
 
 /**
- * A range of text, defined by a start and end indices.
- *
- * @typedef {object} TextRange
- *
- * @property {number} start - The start index (inclusive) of the range within the text.
- * @property {number} end - The end index (exclusive) of the range within the text..
+ * @external {events~EventEmitter} https://nodejs.org/api/events.html#events_class_eventemitter
  */

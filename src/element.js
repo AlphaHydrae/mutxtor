@@ -1,3 +1,8 @@
+import { each, pick } from 'lodash';
+
+import TextRange from './range';
+import { stringify } from './utils';
+
 /**
  * A text element is a part of a {@link TextDocument} that can be mutated.
  *
@@ -32,60 +37,40 @@
  * By using a subclass of `TextElement`, the parser might also store additional information
  * about the elements, such as the titles' contents or level in this case.
  */
-export default class TextElement {
+export default class TextElement extends TextRange {
 
   /**
    * Creates a text element for the specified document.
    *
    * @param {string} document - The document in which the element was found or is to be inserted.
-   * @param {number} start - The index at which the element's text is found in the document.
+   * @param {integer} start - The index at which the element's text is found in the document.
    * @param {string} text - The element's text.
    */
   constructor(document, start, text) {
+    // TODO: validate
+    super(start, start + text.length);
 
     /**
-     * The document in which the text element is located.
+     * The document in which this text element is located.
      * @type {TextDocument}
      */
     this.document = document;
 
     /**
-     * The index at which the element's text is found in the document (inclusive).
-     * @type {number}
+     * @access private
      */
-    this.start = start;
+    this.documentListeners = {};
 
-    /**
-     * The element's text.
-     * @type {string}
-     */
-    this.text = text || '';
-
-    /**
-     * The index at which the element's text ends in the document (exclusive).
-     * @type {number}
-     */
-    this.end = this.start + this.text.length;
-
-    document.on('mutate', this.onDocumentMutated.bind(this));
+    // Keep track of document mutations.
+    this.onDocument('mutate', this.onDocumentMutated);
   }
 
   /**
-   * Indicates whether the specified element or range overlaps with this element.
-   *
-   * @param {TextElement|TextRange} elementOrRange - The element or range to check.
+   * This element's text.
+   * @type {string}
    */
-  overlaps(elementOrRange) {
-
-    const start = elementOrRange.start;
-    const end = elementOrRange.end;
-    if (start == end) {
-      return start > this.start && start < this.end;
-    }
-
-    return (start >= this.start && start < this.end) || // It starts within this element.
-      (end > start && end <= this.end) ||               // It ends within this element.
-      (start <= this.start && end >= this.end);         // It wraps this element.
+  get text() {
+    return this.extractFromText(this.document.text);
   }
 
   /**
@@ -154,13 +139,15 @@ export default class TextElement {
    */
   replace(text) {
     this.document.replace(this, this.start, this.end, text);
-    this.text = text;
     this.end = this.end + text.length - (this.end - this.start);
     return this;
   }
 
   /**
    * Removes this element's text from the document.
+   *
+   * This will also remove the element from the document's list of elements,
+   * and remove all of this elements' listeners registered with {@link TextElement#onDocument}.
    *
    * Utility method for use in {@link TextElement#mutate}.
    *
@@ -173,6 +160,45 @@ export default class TextElement {
    */
   remove() {
     this.document.remove(this, this.start, this.end);
+    this.document.removeElement(this);
+    this.removeDocumentListeners();
+    return this;
+  }
+
+  /**
+   * Registers a listener on a document event.
+   *
+   * Listeners registered with this method can later be removed with {@link TextElement#removeDocumentListeners}.
+   *
+   * @param {string} event - The name of the event to listen to.
+   * @param {function} listener - The callback function.
+   * @param {any} [context] - The context to which the callback function will be bound (`this` by default).
+   * @returns {TextElement} This text element.
+   */
+  onDocument(event, listener, context) {
+
+    const boundListener = listener.bind(context || this);
+    this.document.on(event, boundListener);
+
+    this.documentListeners[event] = this.documentListeners[event] || [];
+    this.documentListeners[event].push(boundListener);
+
+    return this;
+  }
+
+  /**
+   * Unregisters listeners on document events.
+   *
+   * @param {string} [event] - If specified, all the listeners for that event will be unregistered. Otherwise, all listeners for all events will be unregistered.
+   * @returns {TextElement} This text element.
+   */
+  removeDocumentListeners(event) {
+
+    const toRemove = event ? pick(this.documentListeners, event) : this.documentListeners;
+    each(toRemove, (listeners, event) => {
+      each(listeners, (listener) => this.document.removeListener(event, listener));
+    });
+
     return this;
   }
 
@@ -185,22 +211,21 @@ export default class TextElement {
    * (it is the responsibility of elements to mutate themselves; this method
    * only reacts to the mutation of other elements).
    *
+   * @param {TextMutation} mutation - The mutation that occurred.
    * @returns {undefined} Nothing.
    */
   onDocumentMutated(mutation) {
-
-    // Ignore mutation if it concerns this element or takes place before in the document.
-    if (mutation.element == this || this.start < mutation.range.start) {
-      return;
+    if (mutation.element != this && this.start >= mutation.start) {
+      this.moveBy(mutation.delta);
     }
-
-    // Update this element's indices to take the added/removed text into account.
-    const delta = mutation.delta;
-    this.start += delta;
-    this.end += delta;
   }
 
+  /**
+   * Returns a string representing this element.
+   *
+   * @returns {string}
+   */
   toString() {
-    return this.constructor.name + '{start = ' + this.start + ', end = ' + this.end + ', text = "' + this.text.replace(/\n/g, '\\n') + '"}';
+    return stringify(this, 'start', 'end', 'text');
   }
 }
