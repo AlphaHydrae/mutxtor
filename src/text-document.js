@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import { fn as isGeneratorFunction } from 'is-generator';
 import Promise from 'bluebird';
 
+import SpliceTextMutation from './mutation.splice';
 import TextElement from './text-element';
 
 /**
@@ -59,13 +60,24 @@ export default class TextDocument extends EventEmitter {
   }
 
   addElement(element) {
-    // TODO: validate no overlap
 
-    if (_.isEmpty(this.elements) || element.start > _.last(this.elements).start) {
+    if (_.isEmpty(this.elements) || element.start >= _.last(this.elements).end) {
       this.elements.push(element);
     } else {
-      var nextElement = _.findLast(this.elements, (e) => e.start > element.start);
-      this.elements.splice(this.elements.indexOf(nextElement), 0, element);
+
+      const elementIndex = _.sortedIndexBy(this.elements, element, (e) => e.start);
+
+      const previousElement = this.elements[elementIndex - 1];
+      if (previousElement && previousElement.overlaps(element)) {
+        throw new Error('Previous element ' + previousElement + ' overlaps with new element ' + element);
+      }
+
+      const nextElement = this.elements[elementIndex];
+      if (nextElement && nextElement.overlaps(element)) {
+        throw new Error('Next element ' + nextElement + ' overlaps with new element ' + element);
+      }
+
+      this.elements.splice(elementIndex, 0, element);
     }
 
     this.emit('element', element);
@@ -111,31 +123,21 @@ export default class TextDocument extends EventEmitter {
     this.parse();
 
     let promise = Promise.resolve();
-    _.each(this.elements.slice(), (element) => promise = promise.then(() => element.mutate(this)));
+    _.each(this.elements.slice(), (element) => promise = promise.then(() => element.mutate()));
 
     return promise;
   }
 
   insert(element, index, text) {
-    return performMutation(this, element, {
-      index: index,
-      insert: text
-    });
+    return performMutation(this, new SpliceTextMutation(element, index, 0, text));
   }
 
   replace(element, start, end, text) {
-    return performMutation(this, element, {
-      index: start,
-      remove: end - start,
-      insert: text
-    });
+    return performMutation(this, new SpliceTextMutation(element, start, end - start, text));
   }
 
   remove(element, start, end) {
-    return performMutation(this, element, {
-      index: start,
-      remove: end - start
-    });
+    return performMutation(this, new SpliceTextMutation(element, start, end - start));
   }
 
   find(predicate) {
@@ -156,22 +158,8 @@ function toGenerator(document, parser) {
   };
 }
 
-function performMutation(document, element, options) {
-
-  let index = options.index;
-
-  if (options.remove) {
-    let removed = options.remove;
-    document.text = document.text.slice(0, index) + document.text.slice(index + removed);
-  }
-
-  if (options.insert) {
-    let text = options.insert;
-    document.text = document.text.slice(0, index) + text + document.text.slice(index);
-  }
-
-  options.element = element;
-  document.emit('mutate', options);
-
+function performMutation(document, mutation) {
+  document.text = mutation.apply(document.text);
+  document.emit('mutate', mutation);
   return this;
 }

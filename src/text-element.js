@@ -44,6 +44,12 @@ export default class TextElement {
   constructor(document, start, text) {
 
     /**
+     * The document in which the text element is located.
+     * @type {TextDocument}
+     */
+    this.document = document;
+
+    /**
      * The index at which the element's text is found in the document (inclusive).
      * @type {number}
      */
@@ -65,16 +71,109 @@ export default class TextElement {
   }
 
   /**
+   * Indicates whether the specified element or range overlaps with this element.
+   *
+   * @param {TextElement|TextRange} elementOrRange - The element or range to check.
+   */
+  overlaps(elementOrRange) {
+
+    const start = elementOrRange.start;
+    const end = elementOrRange.end;
+    if (start == end) {
+      return start > this.start && start < this.end;
+    }
+
+    return (start >= this.start && start < this.end) || // It starts within this element.
+      (end > start && end <= this.end) ||               // It ends within this element.
+      (start <= this.start && end >= this.end);         // It wraps this element.
+  }
+
+  /**
    * Mutates this element's text.
    *
    * This is an empty implementation which should be overridden in subclasses.
    * The supplied {@link TextDocument} has many utility methods to insert, modify or remove text.
    *
-   * @param {TextDocument} document - The document in which to mutate this element.
    * @returns {Promise|undefined} A promise which will be resolved when the mutation is complete, or nothing if the mutation was synchronous.
    */
-  mutate(document) {
+  mutate() {
     // nothing to do
+  }
+
+  /**
+   * Appends text after this element.
+   *
+   * Utility method for use in {@link TextElement#mutate}.
+   *
+   * @param {string} text - The text to append.
+   * @returns {TextElement} This element (for chaining).
+   *
+   * @example
+   * mutate() {
+   *   this.append(';');
+   * }
+   */
+  append(text) {
+    this.document.insert(this, this.end, text);
+    return this;
+  }
+
+  /**
+   * Prepends text before this element.
+   * The text is not included into the element. Rather, the element is moved forward in the document to take into account the added text.
+   *
+   * Utility method for use in {@link TextElement#mutate}.
+   *
+   * @param {string} text - The text to prepend.
+   * @returns {string} This element (for chaining).
+   *
+   * @example
+   * mutate() {
+   *   this.prepend('---\n');
+   * }
+   */
+  prepend(text) {
+    this.document.insert(this, this.start, text);
+    this.start += text.length;
+    this.end += text.length;
+    return this;
+  }
+
+  /**
+   * Replaces this element's text by another text.
+   *
+   * Utility method for use in {@link TextElement#mutate}.
+   *
+   * @param {string} text - The new text.
+   * @returns {string} This element (for chaining).
+   *
+   * @example
+   * mutate() {
+   *   this.replace('This text is better.');
+   * }
+   */
+  replace(text) {
+    this.document.replace(this, this.start, this.end, text);
+    this.text = text;
+    this.end = this.end + text.length - (this.end - this.start);
+    return this;
+  }
+
+  /**
+   * Removes this element's text from the document.
+   *
+   * Utility method for use in {@link TextElement#mutate}.
+   *
+   * @returns {string} This element (for chaining).
+   *
+   * @example
+   * mutate() {
+   *   this.remove();
+   * }
+   */
+  remove() {
+    this.document.remove(this, this.start, this.end);
+    return this;
   }
 
   /**
@@ -91,23 +190,17 @@ export default class TextElement {
   onDocumentMutated(mutation) {
 
     // Ignore mutation if it concerns this element or takes place before in the document.
-    if (mutation.element == this || this.start < mutation.index) {
+    if (mutation.element == this || this.start < mutation.range.start) {
       return;
     }
 
-    // Keep track of the number of characters added or removed before this element.
-    var delta = 0;
-
-    if (mutation.remove) {
-      delta -= mutation.remove;
-    }
-
-    if (mutation.insert) {
-      delta += mutation.insert.length;
-    }
-
     // Update this element's indices to take the added/removed text into account.
+    const delta = mutation.delta;
     this.start += delta;
     this.end += delta;
+  }
+
+  toString() {
+    return this.constructor.name + '{start = ' + this.start + ', end = ' + this.end + ', text = "' + this.text.replace(/\n/g, '\\n') + '"}';
   }
 }

@@ -11,3 +11,12 @@ export default {
   TextElement: TextElement,
   regexpParserFactory: regexpParserFactory
 };
+
+/**
+ * A range of text, defined by a start and end indices.
+ *
+ * @typedef {object} TextRange
+ *
+ * @property {number} start - The start index (inclusive) of the range within the text.
+ * @property {number} end - The end index (exclusive) of the range within the text..
+ */
