@@ -2,14 +2,22 @@ import polyfills from 'babel-polyfill';
 
 import TextDocument from './document';
 import TextElement from './element';
-import { regexpParserFactory } from './parsers';
+import ConfigurableTextElement from './element.configurable';
+import TextMutation from './mutation';
+import SpliceTextMutation from './mutation.splice';
+import ParserBuilder from './parser-builder';
+import TextRange from './range';
 
-export { TextDocument, TextElement, regexpParserFactory };
+export { ConfigurableTextElement, ParserBuilder, SpliceTextMutation, TextDocument, TextElement, TextMutation, TextRange };
 
 export default {
+  ConfigurableTextElement: ConfigurableTextElement,
+  ParserBuilder: ParserBuilder,
+  SpliceTextMutation: SpliceTextMutation,
   TextDocument: TextDocument,
   TextElement: TextElement,
-  regexpParserFactory: regexpParserFactory
+  TextMutation: TextMutation,
+  TextRange: TextRange
 };
 
 /**

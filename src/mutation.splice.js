@@ -8,7 +8,7 @@ import TextMutation from './mutation';
 export default class SpliceTextMutation extends TextMutation {
 
   /**
-   * Constructs a splice mutation.
+   * Creates a splice mutation.
    *
    * @param {TextElement} element - The text element being mutated.
    * @param {integer} index - The index in the text document at which to remove and/or add characters.

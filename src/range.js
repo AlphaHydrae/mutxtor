@@ -6,7 +6,7 @@ import { isInteger } from 'lodash';
 export default class TextRange {
 
   /**
-   * Constructs a new text range.
+   * Creates a new text range.
    *
    * @param {integer} start - The start index (inclusive) of this range.
    * @param {integer} end - The end index (exclusive) of this range.
@@ -43,6 +43,9 @@ export default class TextRange {
     if (!(range instanceof TextRange)) {
       throw new Error('Range must be an instance of TextRange');
     }
+
+    const start = range.start;
+    const end = range.end;
 
     // Check the specified range...
     return (start >= this.start && start < this.end) || // It starts within this range.

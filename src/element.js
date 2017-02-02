@@ -91,7 +91,7 @@ export default class TextElement extends TextRange {
    * Utility method for use in {@link TextElement#mutate}.
    *
    * @param {string} text - The text to append.
-   * @returns {TextElement} This element (for chaining).
+   * @returns {TextElement} This element.
    *
    * @example
    * mutate() {
@@ -110,7 +110,7 @@ export default class TextElement extends TextRange {
    * Utility method for use in {@link TextElement#mutate}.
    *
    * @param {string} text - The text to prepend.
-   * @returns {string} This element (for chaining).
+   * @returns {string} This element.
    *
    * @example
    * mutate() {
@@ -130,7 +130,7 @@ export default class TextElement extends TextRange {
    * Utility method for use in {@link TextElement#mutate}.
    *
    * @param {string} text - The new text.
-   * @returns {string} This element (for chaining).
+   * @returns {string} This element.
    *
    * @example
    * mutate() {
@@ -151,7 +151,7 @@ export default class TextElement extends TextRange {
    *
    * Utility method for use in {@link TextElement#mutate}.
    *
-   * @returns {string} This element (for chaining).
+   * @returns {string} This element.
    *
    * @example
    * mutate() {
@@ -226,6 +226,13 @@ export default class TextElement extends TextRange {
    * @returns {string}
    */
   toString() {
-    return stringify(this, 'start', 'end', 'text');
+    return stringify(this, ...this.toStringProperties());
+  }
+
+  /**
+   * Returns the properties that will be serialized in {@link TextElement#toString}.
+   */
+  toStringProperties() {
+    return [ 'start', 'end', 'text' ];
   }
 }

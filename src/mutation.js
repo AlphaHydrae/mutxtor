@@ -7,7 +7,7 @@
 export default class TextMutation {
 
   /**
-   * Constructs a new text mutation concerning the specified text element.
+   * Creates a new text mutation concerning the specified text element.
    *
    * @param {TextElement} element - The text element being mutated.
    */

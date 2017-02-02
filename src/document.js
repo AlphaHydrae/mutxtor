@@ -1,20 +1,21 @@
-import { each, every, find, findLast, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
+import { each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
 import EventEmitter from 'events';
 import { fn as isGeneratorFunction } from 'is-generator';
 import Promise from 'bluebird';
 
 import SpliceTextMutation from './mutation.splice';
 import TextElement from './element';
+import ParserBuilder from './parser-builder';
 
 /**
  * A plain text document that can be mutated (or modified).
  *
- * To mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser}.
+ * To mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser} or {@link TextDocument#buildParser}.
  *
  * Parsers must be generator functions which parse the document and yield the text elements they identify.
  * These elements must be subclasses of {@link TextElement} and must be yielded in the order they are found in the document.
  * If the element needs to be mutated, its subclass must know how to modify its own text or the document to obtain the desired end result.
- * See {@link regexpParserFactory} for an example of how to create a parser.
+ * See {@link ParserBuilder} for an example of how to create a parser.
  *
  * When you have added all the parsers you need, call {@link TextDocument#mutate}.
  * This will trigger the parsing, then mutate each element one by one until the end of the document has been reached.
@@ -76,6 +77,18 @@ export default class TextDocument extends EventEmitter {
     this.parsers.push(parser);
 
     return this;
+  }
+
+  /**
+   * Returns a parser builder for this document.
+   * Any argument is passed to the builder's constructor as additional arguments after this document.
+   *
+   * The returned builder will add a parser to this document when calling {@link ParserBuilder#add}.
+   *
+   * @returns {ParserBuilder} A parser builder for this document.
+   */
+  buildParser(...args) {
+    return new ParserBuilder(this, ...args);
   }
 
   /**
@@ -159,6 +172,28 @@ export default class TextDocument extends EventEmitter {
   }
 
   /**
+   * Performs a text element mutation that appends text at the end of this document.
+   *
+   * @param {TextElement} element - The element that triggered the mutation.
+   * @param {string} text - The text to append.
+   * @returns {TextDocument} This document.
+   */
+  append(element, text) {
+    return this.insert(element, this.text.length, text);
+  }
+
+  /**
+   * Performs a text element mutation that prepends text to the beginning of this document.
+   *
+   * @param {TextElement} element - The element that triggered the mutation.
+   * @param {string} text - The text to prepend.
+   * @returns {TextDocument} This document.
+   */
+  prepend(element, text) {
+    return this.insert(element, 0, text);
+  }
+
+  /**
    * Performs a text element mutation that inserts additional text into the document.
    *
    * @param {TextElement} element - The element that triggered the mutation.
@@ -213,6 +248,36 @@ export default class TextDocument extends EventEmitter {
    */
   findLast(predicate) {
     return findLast(this.elements, predicate);
+  }
+
+  /**
+   * Finds the first text element after the specified element in this document that matches the specified conditions.
+   *
+   * @param {TextElement} element - The element after which to search.
+   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.
+   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.
+   */
+  findNext(element, predicate) {
+    if (!includes(this.elements, element)) {
+      throw new Error('Element ' + element + ' is not in document');
+    }
+
+    return this.find((e) => e.start > element.start && predicate(e));
+  }
+
+  /**
+   * Finds the last text element before the specified element in this document that matches the specified conditions.
+   *
+   * @param {TextElement} element - The element before which to search.
+   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.
+   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.
+   */
+  findPrevious(element, predicate) {
+    if (!includes(this.elements, element)) {
+      throw new Error('Element ' + element + ' is not in document');
+    }
+
+    return this.findLast((e) => e.start < element.start && predicate(e));
   }
 }
 
