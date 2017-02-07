@@ -57,6 +57,9 @@ export default class TextDocument extends EventEmitter {
      * @type {Array<TextElement>}
      */
     this.elements = [];
+
+    // TODO: automatically update max listeners
+    this.setMaxListeners(1000);
   }
 
   /**
