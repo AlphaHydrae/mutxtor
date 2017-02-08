@@ -1,4 +1,4 @@
-import { each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
+import { defaults, each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
 import EventEmitter from 'events';
 import { fn as isGeneratorFunction } from 'is-generator';
 import Promise from 'bluebird';
@@ -6,6 +6,7 @@ import Promise from 'bluebird';
 import SpliceTextMutation from './mutation.splice';
 import TextElement from './element';
 import ParserBuilder from './parser-builder';
+import TextQuery from './query';
 
 /**
  * A plain text document that can be mutated (or modified).
@@ -231,6 +232,10 @@ export default class TextDocument extends EventEmitter {
    */
   remove(element, start, end) {
     return performMutation(this, new SpliceTextMutation(element, start, end - start));
+  }
+
+  query() {
+    return new TextQuery(this);
   }
 
   /**
