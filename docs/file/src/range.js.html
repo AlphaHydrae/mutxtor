@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/range.js | Mutxtor API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/AlphaHydrae/mutxtor.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.configurable.js~ConfigurableTextElement.html">ConfigurableTextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.js~TextElement.html">TextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.splice.js~SpliceTextMutation.html">SpliceTextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/range.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import { isInteger } from &apos;lodash&apos;;
+
+/**
+ * A range of text, defined by a start and end indices.
+ */
+export default class TextRange {
+
+  /**
+   * Creates a new text range.
+   *
+   * @param {integer} start - The start index (inclusive) of this range.
+   * @param {integer} end - The end index (exclusive) of this range.
+   */
+  constructor(start, end) {
+    if (!isInteger(start) || start &lt; 0) {
+      throw new Error(&apos;Text range start must be an integer greater than or equal to 0; got &apos; + JSON.stringify(start) + &apos; (&apos; + typeof(start) + &apos;)&apos;);
+    } else if (!isInteger(end) || end &lt; 1) {
+      throw new Error(&apos;Text range end must be an integer greater than or equal to 1; got &apos; + JSON.stringify(end) + &apos; (&apos; + typeof(end) + &apos;)&apos;);
+    } else if (end &lt;= start) {
+      throw new Error(&apos;Text range end must be greater than start; got &apos; + end + &apos; (start is &apos; + start + &apos;)&apos;);
+    }
+
+    /**
+     * The start index (inclusive) of this range.
+     * @type {integer}
+     */
+    this.start = start;
+
+    /**
+     * The end index (exclusive) of this range.
+     * @type {integer}
+     */
+    this.end = end;
+  }
+
+  /**
+   * Indicates whether the specified range overlaps with this one.
+   *
+   * @param {TextRange} range - The range to check.
+   * @returns {boolean} True if the specified range overlaps with this one, false otherwise.
+   */
+  overlaps(range) {
+    if (!(range instanceof TextRange)) {
+      throw new Error(&apos;Range must be an instance of TextRange&apos;);
+    }
+
+    const start = range.start;
+    const end = range.end;
+
+    // Check the specified range...
+    return (start &gt;= this.start &amp;&amp; start &lt; this.end) || // It starts within this range.
+      (end &gt; start &amp;&amp; end &lt;= this.end) ||               // It ends within this range.
+      (start &lt;= this.start &amp;&amp; end &gt;= this.end);         // It is around this range.
+  }
+
+  /**
+   * Moves this range by the specified number of characters.
+   *
+   * @param {integer} delta - The value to add or remove to this range&apos;s start and end indices.
+   * @returns {TextRange} This range.
+   */
+  moveBy(delta) {
+    if (!isInteger(delta)) {
+      throw new Error(&apos;Delta must be an integer; got &apos; + JSON.stringify(delta) + &apos; (&apos; + typeof(delta) + &apos;)&apos;);
+    } else if (this.start + delta &lt; 0) {
+      throw new Error(&apos;Delta cannot move the start index of this range below 0 (current start index is &apos; + this.start + &apos;)&apos;);
+    }
+
+    this.start += delta;
+    this.end += delta;
+
+    return this;
+  }
+
+  /**
+   * Returns the contents of this range within the specified text.
+   *
+   * @param {string} text - The text from which to extract this range.
+   * @returns {string} This range&apos;s text.
+   */
+  extractFromText(text) {
+    if (!this.isInText(text)) {
+      throw new Error(&apos;Text range &apos; + this.start + &apos;-&apos; + this.end + &apos; is not in text (total length is &apos; + text.length + &apos;)&apos;);
+    }
+
+    return text.slice(this.start, this.end);
+  }
+
+  /**
+   * Indicates whether this range exists within the specified text.
+   *
+   * @param {string} text - The text in which to check.
+   * @returns {boolean} True if this range fits within the bounds of the text, false otherwise.
+   */
+  isInText(text) {
+    return this.start &lt;= text.length - 1 &amp;&amp; this.end &lt;= text.length;
+  }
+
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

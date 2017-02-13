@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/mutation.splice.js | Mutxtor API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/AlphaHydrae/mutxtor.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.configurable.js~ConfigurableTextElement.html">ConfigurableTextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.js~TextElement.html">TextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.splice.js~SpliceTextMutation.html">SpliceTextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/mutation.splice.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import TextMutation from &apos;./mutation&apos;;
+
+/**
+ * A text mutation that removes and/or adds characters at a specific index in a text, much like `Array.prototype.splice` does for arrays.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
+ */
+export default class SpliceTextMutation extends TextMutation {
+
+  /**
+   * Creates a splice mutation.
+   *
+   * @param {TextElement} element - The text element being mutated.
+   * @param {integer} index - The index in the text document at which to remove and/or add characters.
+   * @param {integer} removeCount - How many characters to remove at the specified index (can be 0).
+   * @param {string} [textToAdd] - The text to add at the specified index (can be omitted if you only need to remove text).
+   */
+  constructor(element, index, removeCount, textToAdd) {
+    // TODO: validate
+    super(element);
+
+    /**
+     * The index in the text document at which to remove and/or add characters.
+     * @type {integer}
+     */
+    this.index = index;
+
+    /**
+     * How many characters to remove at the specified index.
+     * @type {integer}
+     */
+    this.removeCount = removeCount;
+
+    /**
+     * The text to add at the specified index.
+     * @type {string}
+     */
+    this.textToAdd = textToAdd;
+  }
+
+  /**
+   * Returns the index at which splicing takes place in the text document.
+   *
+   * @returns {integer} The index at which splicing takes place.
+   */
+  get start() {
+    return this.index;
+  }
+
+  /**
+   * Returns the end index (exclusive) of the text range removed by the mutation, if any.
+   *
+   * @returns {integer|undefined} The end index (exclusive) of the text range removed by the mutation, or `undefined` if it only adds new text.
+   */
+  get end() {
+    return this.removeCount ? this.index + this.removeCount : undefined;
+  }
+
+  /**
+   * Returns the difference between the length of the added text and the number of removed characters.
+   *
+   * @returns {integer} The number of characters added to or removed from the document by this mutation.
+   */
+  get delta() {
+    return (this.removeCount ? -this.removeCount : 0) + (this.textToAdd ? this.textToAdd.length : 0);
+  }
+
+  /**
+   * Applies this mutation to the specified text.
+   *
+   * @param {string} text - The text to change.
+   * @returns {string} The changed text.
+   */
+  apply(text) {
+    if (this.removeCount) {
+      text = text.slice(0, this.index) + text.slice(this.index + this.removeCount);
+    }
+
+    if (this.textToAdd) {
+      text = text.slice(0, this.index) + this.textToAdd + text.slice(this.index);
+    }
+
+    return text;
+  }
+
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>

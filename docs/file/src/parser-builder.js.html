@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl" href="../../">
+  <title data-ice="title">src/parser-builder.js | Mutxtor API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/AlphaHydrae/mutxtor.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.configurable.js~ConfigurableTextElement.html">ConfigurableTextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/element.js~TextElement.html">TextElement</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.splice.js~SpliceTextMutation.html">SpliceTextMutation</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><h1 data-ice="title">src/parser-builder.js</h1>
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import { extend, pick } from &apos;lodash&apos;;
+
+import ConfigurableTextElement from &apos;./element.configurable&apos;;
+
+/**
+ * A chainable builder to add a text parser to a {@link TextDocument}.
+ *
+ * {@link TextDocument} parsers are generator functions that must return {@link TextElement} objects, usually a subclass.
+ * This builder simplifies making such a function.
+ *
+ * @example
+ * // Adds a parser that will prepend a horizontal rule before all titles in a Markdown document (except the main title).
+ * document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate(function(data) {
+ *   const titleLevel = data.match[1].length;
+ *   if (titleLevel &gt;= 2) {
+ *     this.prepend(&apos;---\n&apos;);
+ *   }
+ * }).add();
+ */
+export default class ParserBuilder {
+
+  /**
+   * Creates a builder that will add a parser to the specified document.
+   *
+   * @param {TextDocument} document - The document to add the parser to.
+   * @param {string} [type] - An optional type that will be set on parsed {@link TextElement} objects.
+   * This can be useful to distinguish between different element types since all elements parsed by this build&apos;s parser will be instances of the same {@link TextElement} subclass.
+   */
+  constructor(document, type) {
+
+    /**
+     * The document to which this builder will add parsers.
+     * @type {TextDocument}
+     */
+    this.document = document;
+
+    if (type !== undefined) {
+      /**
+       * The type of parsed {@link TextElement} objects.
+       * @type {string}
+       */
+      this.type = type;
+    }
+  }
+
+  /**
+   * Configures the parser to look for text elements matching the specified regular expression in the document.
+   *
+   * The regular expression can have the global flag or not, depending on whether you need to parse a single or multiple elements.
+   *
+   * @param {RegExp} regexp - The regular expression to use to find text elements.
+   * @returns {ParserBuilder} This builder.
+   */
+  regexp(regexp) {
+
+    /**
+     * @access private
+     */
+    this.generator = regexpGeneratorFactory(regexp, (document, match) =&gt; {
+      return createElement(this, match.index, match[0], {
+        match: match
+      });
+    });
+
+    return this;
+  }
+
+  /**
+   * Sets the type that will be set on parsed {@link TextElement} objects.
+   *
+   * This overrides the type supplied to the constructor.
+   *
+   * @param {string} type - The type to set on parsed {@link TextElement} objects.
+   * @returns {ParserBuilder} This builder.
+   */
+  elementType(type) {
+    this.type = type;
+    return this;
+  }
+
+  /**
+   * Sets the initializer function that will be invoked for each parsed {@link TextElement} object.
+   * It will be bound to the parsed object.
+   *
+   * @param {function} initializer - An initializer function.
+   * @returns {ParserBuilder} This builder.
+   */
+  initialize(initializer) {
+    /**
+     * @access private
+     */
+    this.initializer = initializer;
+    return this;
+  }
+
+  /**
+   * Sets the mutator function that will be invoked when each parsed {@link TextElement} object is mutated.
+   * It will be bound to the parsed object.
+   *
+   * @param {function} mutator - A mutator function.
+   * @returns {ParserBuilder} This builder.
+   */
+  mutate(mutator) {
+    /**
+     * @access private
+     */
+    this.mutator = mutator;
+    return this;
+  }
+
+  /**
+   * Adds the configured parser to this builder&apos;s document.
+   *
+   * @returns {ParserBuilder} This builder.
+   */
+  add() {
+    this.document.addParser(this.generator);
+    return this;
+  }
+
+}
+
+function createElement(builder, start, text, data) {
+  const element = new ConfigurableTextElement(builder.document, start, text, data);
+  extend(element, pick(builder, &apos;initializer&apos;, &apos;mutator&apos;, &apos;type&apos;));
+  return element;
+}
+
+function regexpGeneratorFactory(regexp, factory) {
+  return function*(document) {
+
+    let match;
+    if (!regexp.global) {
+      if ((match = regexp.exec(document.text)) !== null) {
+        yield factory(document, match);
+      }
+
+      return;
+    }
+
+    let index;
+    while ((match = regexp.exec(document.text)) !== null) {
+      if (match.index === index) {
+        throw new Error(&apos;Parser must not match the same text twice (at index &apos; + index + &apos;)&apos;);
+      }
+
+      index = match.index;
+      yield factory(document, match);
+    }
+  };
+}
+</code></pre>
+
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
