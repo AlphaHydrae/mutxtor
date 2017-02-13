@@ -1,5 +1,8 @@
 # Mutxtor
 
+[![npm version](https://badge.fury.io/js/mutxtor.svg)](https://badge.fury.io/js/mutxtor)
+[![Dependency Status](https://gemnasium.com/badges/github.com/AlphaHydrae/mutxtor.svg)](https://gemnasium.com/github.com/AlphaHydrae/mutxtor)
+
 > Plain text parsing and transformation engine.
 
 
