@@ -234,6 +234,11 @@ export default class TextDocument extends EventEmitter {
     return performMutation(this, new SpliceTextMutation(element, start, end - start));
   }
 
+  /**
+   * Returns a text query for this document.
+   *
+   * @returns {TextQuery} A text query.
+   */
   query() {
     return new TextQuery(this);
   }
