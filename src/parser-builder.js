@@ -121,8 +121,9 @@ export default class ParserBuilder {
 }
 
 function createElement(builder, start, text, data) {
+  extend(data, pick(builder, 'initializer'));
   const element = new ConfigurableTextElement(builder.document, start, text, data);
-  extend(element, pick(builder, 'initializer', 'mutator', 'type'));
+  extend(element, pick(builder, 'mutator', 'type'));
   return element;
 }
 

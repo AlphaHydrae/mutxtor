@@ -28,8 +28,8 @@ export default class ConfigurableTextElement extends TextElement {
 
     // If an initializer function is defined, call it.
     // TODO: create a setter for the initializer and the type
-    if (isFunction(this.initialize)) {
-      this.initialize.call(this, data);
+    if (isFunction(data.initializer)) {
+      data.initializer.call(this, data);
     }
   }
 
