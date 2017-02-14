@@ -1,7 +1,7 @@
 {
-  "coverage": "97.64%",
-  "expectCount": 85,
-  "actualCount": 83,
+  "coverage": "97.75%",
+  "expectCount": 89,
+  "actualCount": 87,
   "files": {
     "src/element.configurable.js": {
       "expectCount": 5,
@@ -19,8 +19,8 @@
       "undocumentLines": []
     },
     "src/document.js": {
-      "expectCount": 20,
-      "actualCount": 20,
+      "expectCount": 24,
+      "actualCount": 24,
       "undocumentLines": []
     },
     "src/element.js": {

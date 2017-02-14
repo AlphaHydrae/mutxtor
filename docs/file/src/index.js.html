@@ -40,7 +40,8 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span></span></li>
 </ul>
 </div>
 </nav>
@@ -49,6 +50,7 @@
 <pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import polyfills from &apos;babel-polyfill&apos;;
 
 import TextDocument from &apos;./document&apos;;
+import { TextDocumentStart, TextDocumentEnd } from &apos;./document&apos;;
 import TextElement from &apos;./element&apos;;
 import ConfigurableTextElement from &apos;./element.configurable&apos;;
 import TextMutation from &apos;./mutation&apos;;
@@ -56,17 +58,7 @@ import SpliceTextMutation from &apos;./mutation.splice&apos;;
 import ParserBuilder from &apos;./parser-builder&apos;;
 import TextRange from &apos;./range&apos;;
 
-export { ConfigurableTextElement, ParserBuilder, SpliceTextMutation, TextDocument, TextElement, TextMutation, TextRange };
-
-export default {
-  ConfigurableTextElement: ConfigurableTextElement,
-  ParserBuilder: ParserBuilder,
-  SpliceTextMutation: SpliceTextMutation,
-  TextDocument: TextDocument,
-  TextElement: TextElement,
-  TextMutation: TextMutation,
-  TextRange: TextRange
-};
+export { ConfigurableTextElement, ParserBuilder, SpliceTextMutation, TextDocument, TextDocumentStart, TextDocumentEnd, TextElement, TextMutation, TextRange };
 
 /**
  * @external {events~EventEmitter} https://nodejs.org/api/events.html#events_class_eventemitter

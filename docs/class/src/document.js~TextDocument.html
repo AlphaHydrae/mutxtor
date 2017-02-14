@@ -40,19 +40,20 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span></span></li>
 </ul>
 </div>
 </nav>
 
 <div class="content" data-ice="content"><div class="header-notice">
-  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import TextDocument from &apos;<span><a href="file/src/document.js.html#lineNumber34">mutxtor/src/document.js</a></span>&apos;</code></pre></div>
+  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import TextDocument from &apos;<span><a href="file/src/document.js.html#lineNumber46">mutxtor/src/document.js</a></span>&apos;</code></pre></div>
   <span data-ice="access">public</span>
   <span data-ice="kind">class</span>
   
   
   
-  <span data-ice="source">| <span><a href="file/src/document.js.html#lineNumber34">source</a></span></span>
+  <span data-ice="source">| <span><a href="file/src/document.js.html#lineNumber46">source</a></span></span>
 </div>
 
 <div class="self-detail detail">
@@ -62,7 +63,7 @@
 
   
   
-  <div class="flat-list" data-ice="extendsChain"><h4>Extends:</h4><div><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span> &#x2192; TextDocument</div></div>
+  <div class="flat-list" data-ice="extendsChain"><h4>Extends:</h4><div><span>events~EventEmitter</span> &#x2192; TextDocument</div></div>
   
   
   
@@ -81,7 +82,7 @@ See <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder
 <p>When you have added all the parsers you need, call <span><a href="class/src/document.js~TextDocument.html#instance-method-mutate">TextDocument#mutate</a></span>.
 This will trigger the parsing, then mutate each element one by one until the end of the document has been reached.</p>
 <h2 id="events">Events</h2>
-<p>A text document is an <span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span> that emits the following events:</p>
+<p>A text document is an <span>events~EventEmitter</span> that emits the following events:</p>
 <ul>
 <li><code>element</code> - Emitted after calling <span><a href="class/src/document.js~TextDocument.html#instance-method-mutate">TextDocument#mutate</a></span> while the parsing is in progress, for each new element identified by a parser.
 The parsed <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> is provided to listeners.</li>
@@ -330,6 +331,34 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
         <p>
           
           
+          <span data-ice="name"><span><a href="class/src/document.js~TextDocument.html#instance-method-appendTo">appendTo</a></span></span><span data-ice="signature">(element: <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, text: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span>): <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        <div data-ice="description"><p>Performs a text element mutation that appends text after the specified element in this document.</p>
+</div>
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+<tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">public</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
           <span data-ice="name"><span><a href="class/src/document.js~TextDocument.html#instance-method-buildParser">buildParser</a></span></span><span data-ice="signature">(args: ...<span>*</span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
@@ -554,6 +583,34 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
         <p>
           
           
+          <span data-ice="name"><span><a href="class/src/document.js~TextDocument.html#instance-method-prependTo">prependTo</a></span></span><span data-ice="signature">(element: <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, text: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span>): <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        <div data-ice="description"><p>Performs a text element mutation that prepends text to the specified element in this document.</p>
+</div>
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+<tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">public</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
           <span data-ice="name"><span><a href="class/src/document.js~TextDocument.html#instance-method-query">query</a></span></span><span data-ice="signature">(): <span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span>
         </p>
       </div>
@@ -675,7 +732,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber41">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber53">source</a></span></span>
     </span>
   </h3>
 
@@ -739,7 +796,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber60">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber72">source</a></span></span>
     </span>
   </h3>
 
@@ -783,7 +840,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber54">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber66">source</a></span></span>
     </span>
   </h3>
 
@@ -827,7 +884,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber48">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber60">source</a></span></span>
     </span>
   </h3>
 
@@ -874,7 +931,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber106">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber118">source</a></span></span>
     </span>
   </h3>
 
@@ -949,7 +1006,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber74">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber86">source</a></span></span>
     </span>
   </h3>
 
@@ -1024,7 +1081,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber185">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber197">source</a></span></span>
     </span>
   </h3>
 
@@ -1094,6 +1151,99 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
   
 </div>
 <div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="instance-method-appendTo">
+    <span class="access" data-ice="access">public</span>
+    
+    
+    
+    
+    
+    <span data-ice="name">appendTo</span><span data-ice="signature">(element: <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, text: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span>): <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber217">source</a></span></span>
+    </span>
+  </h3>
+
+  
+  
+  
+  <div data-ice="description"><p>Performs a text element mutation that appends text after the specified element in this document.</p>
+<p>If the element is <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span>, the text is prepended to the beginning of the document.
+If the element is <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, the text is appended to the end of the document.</p>
+</div>
+
+  
+
+  <div data-ice="properties"><div data-ice="properties">
+  <h4 data-ice="title">Params:</h4>
+  <table class="params">
+    <thead>
+    <tr><td>Name</td><td>Type</td><td>Attribute</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+    
+    <tr data-ice="property" data-depth="0">
+      <td data-ice="name" data-depth="0">element</td>
+      <td data-ice="type"><span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"><p>The element to append the text to.</p>
+</td>
+    </tr>
+<tr data-ice="property" data-depth="0">
+      <td data-ice="name" data-depth="0">text</td>
+      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"><p>The text to append.</p>
+</td>
+    </tr>
+</tbody>
+  </table>
+</div>
+</div>
+
+  <div class="return-params" data-ice="returnParams">
+    <h4>Return:</h4>
+    <table>
+      <tbody>
+        <tr>
+          <td class="return-type" data-ice="returnType"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></td>
+          <td class="return-desc" data-ice="returnDescription"><p>This document.</p>
+</td>
+        </tr>
+      </tbody>
+    </table>
+    <div data-ice="returnProperties">
+</div>
+  </div>
+
+  
+
+  
+
+  
+
+  
+
+  <div data-ice="example">
+    <h4>Example:</h4>
+    
+  <div class="example-doc" data-ice="exampleDoc">
+      
+      <pre class="prettyprint source-code"><code data-ice="exampleCode">// Append text to an element
+document.appendTo(element, &apos;foo&apos;);
+// Append text to an element, or to the end of the document if the element is null
+document.appendTo(elementThatMayBeNull || TextDocumentEnd, &apos;]&apos;);</code></pre>
+    </div>
+</div>
+
+  
+
+  
+  
+</div>
+<div class="detail" data-ice="detail">
   <h3 data-ice="anchor" id="instance-method-buildParser">
     <span class="access" data-ice="access">public</span>
     
@@ -1105,7 +1255,7 @@ The <span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></sp
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber94">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber106">source</a></span></span>
     </span>
   </h3>
 
@@ -1180,7 +1330,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber252">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber320">source</a></span></span>
     </span>
   </h3>
 
@@ -1254,7 +1404,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber262">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber330">source</a></span></span>
     </span>
   </h3>
 
@@ -1328,7 +1478,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber273">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber341">source</a></span></span>
     </span>
   </h3>
 
@@ -1409,7 +1559,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber288">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber356">source</a></span></span>
     </span>
   </h3>
 
@@ -1490,7 +1640,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber208">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber276">source</a></span></span>
     </span>
   </h3>
 
@@ -1578,7 +1728,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber166">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber178">source</a></span></span>
     </span>
   </h3>
 
@@ -1640,7 +1790,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber196">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber236">source</a></span></span>
     </span>
   </h3>
 
@@ -1710,6 +1860,99 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
   
 </div>
 <div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="instance-method-prependTo">
+    <span class="access" data-ice="access">public</span>
+    
+    
+    
+    
+    
+    <span data-ice="name">prependTo</span><span data-ice="signature">(element: <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, text: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span>): <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber256">source</a></span></span>
+    </span>
+  </h3>
+
+  
+  
+  
+  <div data-ice="description"><p>Performs a text element mutation that prepends text to the specified element in this document.</p>
+<p>If the element is <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span>, the text is inserted at the beginning of the document.
+If the element is <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span>, the text is appended to the end of the document.</p>
+</div>
+
+  
+
+  <div data-ice="properties"><div data-ice="properties">
+  <h4 data-ice="title">Params:</h4>
+  <table class="params">
+    <thead>
+    <tr><td>Name</td><td>Type</td><td>Attribute</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+    
+    <tr data-ice="property" data-depth="0">
+      <td data-ice="name" data-depth="0">element</td>
+      <td data-ice="type"><span><a href="class/src/element.js~TextElement.html">TextElement</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span> | <span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"><p>The element to prepend the text to.</p>
+</td>
+    </tr>
+<tr data-ice="property" data-depth="0">
+      <td data-ice="name" data-depth="0">text</td>
+      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"><p>The text to prepend.</p>
+</td>
+    </tr>
+</tbody>
+  </table>
+</div>
+</div>
+
+  <div class="return-params" data-ice="returnParams">
+    <h4>Return:</h4>
+    <table>
+      <tbody>
+        <tr>
+          <td class="return-type" data-ice="returnType"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></td>
+          <td class="return-desc" data-ice="returnDescription"><p>This document.</p>
+</td>
+        </tr>
+      </tbody>
+    </table>
+    <div data-ice="returnProperties">
+</div>
+  </div>
+
+  
+
+  
+
+  
+
+  
+
+  <div data-ice="example">
+    <h4>Example:</h4>
+    
+  <div class="example-doc" data-ice="exampleDoc">
+      
+      <pre class="prettyprint source-code"><code data-ice="exampleCode">// Prepend text to an element
+document.prependTo(element, &apos;foo&apos;);
+// Prepend text to an element, or append it to the end of the document if the element is null
+document.prependTo(elementThatMayBeNull || TextDocumentEnd, &apos;]&apos;);</code></pre>
+    </div>
+</div>
+
+  
+
+  
+  
+</div>
+<div class="detail" data-ice="detail">
   <h3 data-ice="anchor" id="instance-method-query">
     <span class="access" data-ice="access">public</span>
     
@@ -1721,7 +1964,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber242">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber310">source</a></span></span>
     </span>
   </h3>
 
@@ -1778,7 +2021,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber233">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber301">source</a></span></span>
     </span>
   </h3>
 
@@ -1866,7 +2109,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber144">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber156">source</a></span></span>
     </span>
   </h3>
 
@@ -1940,7 +2183,7 @@ Any argument is passed to the builder&apos;s constructor as additional arguments
     <span class="right-info">
       
       
-      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber221">source</a></span></span>
+      <span data-ice="source"><span><a href="file/src/document.js.html#lineNumber289">source</a></span></span>
     </span>
   </h3>
 

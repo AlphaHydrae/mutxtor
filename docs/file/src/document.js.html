@@ -40,7 +40,8 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
-<li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span></span></li>
 </ul>
 </div>
 </nav>
@@ -55,6 +56,18 @@ import SpliceTextMutation from &apos;./mutation.splice&apos;;
 import TextElement from &apos;./element&apos;;
 import ParserBuilder from &apos;./parser-builder&apos;;
 import TextQuery from &apos;./query&apos;;
+
+/**
+ * The start of a text document.
+ * @type {Symbol}
+ */
+export const TextDocumentStart = Symbol(&apos;start&apos;);
+
+/**
+ * The end of a text document.
+ * @type {Symbol}
+ */
+export const TextDocumentEnd = Symbol(&apos;end&apos;);
 
 /**
  * A plain text document that can be mutated (or modified).
@@ -235,6 +248,34 @@ export default class TextDocument extends EventEmitter {
   }
 
   /**
+   * Performs a text element mutation that appends text after the specified element in this document.
+   *
+   * If the element is {@link TextDocumentStart}, the text is prepended to the beginning of the document.
+   * If the element is {@link TextDocumentEnd}, the text is appended to the end of the document.
+   *
+   * @param {TextElement|TextDocumentStart|TextDocumentEnd} element - The element to append the text to.
+   * @param {String} text - The text to append.
+   * @returns {TextDocument} This document.
+   *
+   * @example
+   * // Append text to an element
+   * document.appendTo(element, &apos;foo&apos;);
+   * // Append text to an element, or to the end of the document if the element is null
+   * document.appendTo(elementThatMayBeNull || TextDocumentEnd, &apos;]&apos;);
+   */
+  appendTo(element, text) {
+    if (element == TextDocumentStart) {
+      return this.prepend(undefined, text);
+    } else if (element == TextDocumentEnd) {
+      return this.append(undefined, text);
+    } else if (element instanceof TextElement) {
+      return element.append(text);
+    } else {
+      throw new Error(&apos;Element must be a TextElement or TextDocumentStart or TextDocumentEnd&apos;);
+    }
+  }
+
+  /**
    * Performs a text element mutation that prepends text to the beginning of this document.
    *
    * @param {TextElement} element - The element that triggered the mutation.
@@ -243,6 +284,34 @@ export default class TextDocument extends EventEmitter {
    */
   prepend(element, text) {
     return this.insert(element, 0, text);
+  }
+
+  /**
+   * Performs a text element mutation that prepends text to the specified element in this document.
+   *
+   * If the element is {@link TextDocumentStart}, the text is inserted at the beginning of the document.
+   * If the element is {@link TextDocumentEnd}, the text is appended to the end of the document.
+   *
+   * @param {TextElement|TextDocumentStart|TextDocumentEnd} element - The element to prepend the text to.
+   * @param {String} text - The text to prepend.
+   * @returns {TextDocument} This document.
+   *
+   * @example
+   * // Prepend text to an element
+   * document.prependTo(element, &apos;foo&apos;);
+   * // Prepend text to an element, or append it to the end of the document if the element is null
+   * document.prependTo(elementThatMayBeNull || TextDocumentEnd, &apos;]&apos;);
+   */
+  prependTo(element, text) {
+    if (element == TextDocumentStart) {
+      return this.prepend(undefined, text);
+    } else if (element == TextDocumentEnd) {
+      return this.append(undefined, text);
+    } else if (element instanceof TextElement) {
+      return element.prepend(text);
+    } else {
+      throw new Error(&apos;Element must be a TextElement or TextDocumentStart or TextDocumentEnd&apos;);
+    }
   }
 
   /**

@@ -24,6 +24,18 @@ window.esdocSearchIndex = [
     "class"
   ],
   [
+    "mutxtor/src/document.js~textdocumentend",
+    "variable/index.html#static-variable-TextDocumentEnd",
+    "<span>TextDocumentEnd</span> <span class=\"search-result-import-path\">mutxtor/src/document.js</span>",
+    "variable"
+  ],
+  [
+    "mutxtor/src/document.js~textdocumentstart",
+    "variable/index.html#static-variable-TextDocumentStart",
+    "<span>TextDocumentStart</span> <span class=\"search-result-import-path\">mutxtor/src/document.js</span>",
+    "variable"
+  ],
+  [
     "mutxtor/src/element.js~textelement",
     "class/src/element.js~TextElement.html",
     "<span>TextElement</span> <span class=\"search-result-import-path\">mutxtor/src/element.js</span>",
@@ -402,6 +414,12 @@ window.esdocSearchIndex = [
     "method"
   ],
   [
+    "src/document.js~textdocument#appendto",
+    "class/src/document.js~TextDocument.html#instance-method-appendTo",
+    "src/document.js~TextDocument#appendTo",
+    "method"
+  ],
+  [
     "src/document.js~textdocument#buildparser",
     "class/src/document.js~TextDocument.html#instance-method-buildParser",
     "src/document.js~TextDocument#buildParser",
@@ -465,6 +483,12 @@ window.esdocSearchIndex = [
     "src/document.js~textdocument#prepend",
     "class/src/document.js~TextDocument.html#instance-method-prepend",
     "src/document.js~TextDocument#prepend",
+    "method"
+  ],
+  [
+    "src/document.js~textdocument#prependto",
+    "class/src/document.js~TextDocument.html#instance-method-prependTo",
+    "src/document.js~TextDocument#prependTo",
     "method"
   ],
   [
@@ -628,12 +652,6 @@ window.esdocSearchIndex = [
     "file/src/index.js.html",
     "src/index.js",
     "file"
-  ],
-  [
-    "src/index.js~events~eventemitter",
-    "https://nodejs.org/api/events.html#events_class_eventemitter",
-    "src/index.js~events~EventEmitter",
-    "external"
   ],
   [
     "src/mutation.js",

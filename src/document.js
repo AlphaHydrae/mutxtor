@@ -9,6 +9,18 @@ import ParserBuilder from './parser-builder';
 import TextQuery from './query';
 
 /**
+ * The start of a text document.
+ * @type {Symbol}
+ */
+export const TextDocumentStart = Symbol('start');
+
+/**
+ * The end of a text document.
+ * @type {Symbol}
+ */
+export const TextDocumentEnd = Symbol('end');
+
+/**
  * A plain text document that can be mutated (or modified).
  *
  * To mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser} or {@link TextDocument#buildParser}.
@@ -187,6 +199,34 @@ export default class TextDocument extends EventEmitter {
   }
 
   /**
+   * Performs a text element mutation that appends text after the specified element in this document.
+   *
+   * If the element is {@link TextDocumentStart}, the text is prepended to the beginning of the document.
+   * If the element is {@link TextDocumentEnd}, the text is appended to the end of the document.
+   *
+   * @param {TextElement|TextDocumentStart|TextDocumentEnd} element - The element to append the text to.
+   * @param {String} text - The text to append.
+   * @returns {TextDocument} This document.
+   *
+   * @example
+   * // Append text to an element
+   * document.appendTo(element, 'foo');
+   * // Append text to an element, or to the end of the document if the element is null
+   * document.appendTo(elementThatMayBeNull || TextDocumentEnd, ']');
+   */
+  appendTo(element, text) {
+    if (element == TextDocumentStart) {
+      return this.prepend(undefined, text);
+    } else if (element == TextDocumentEnd) {
+      return this.append(undefined, text);
+    } else if (element instanceof TextElement) {
+      return element.append(text);
+    } else {
+      throw new Error('Element must be a TextElement or TextDocumentStart or TextDocumentEnd');
+    }
+  }
+
+  /**
    * Performs a text element mutation that prepends text to the beginning of this document.
    *
    * @param {TextElement} element - The element that triggered the mutation.
@@ -195,6 +235,34 @@ export default class TextDocument extends EventEmitter {
    */
   prepend(element, text) {
     return this.insert(element, 0, text);
+  }
+
+  /**
+   * Performs a text element mutation that prepends text to the specified element in this document.
+   *
+   * If the element is {@link TextDocumentStart}, the text is inserted at the beginning of the document.
+   * If the element is {@link TextDocumentEnd}, the text is appended to the end of the document.
+   *
+   * @param {TextElement|TextDocumentStart|TextDocumentEnd} element - The element to prepend the text to.
+   * @param {String} text - The text to prepend.
+   * @returns {TextDocument} This document.
+   *
+   * @example
+   * // Prepend text to an element
+   * document.prependTo(element, 'foo');
+   * // Prepend text to an element, or append it to the end of the document if the element is null
+   * document.prependTo(elementThatMayBeNull || TextDocumentEnd, ']');
+   */
+  prependTo(element, text) {
+    if (element == TextDocumentStart) {
+      return this.prepend(undefined, text);
+    } else if (element == TextDocumentEnd) {
+      return this.append(undefined, text);
+    } else if (element instanceof TextElement) {
+      return element.prepend(text);
+    } else {
+      throw new Error('Element must be a TextElement or TextDocumentStart or TextDocumentEnd');
+    }
   }
 
   /**
