@@ -38,6 +38,7 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.js~TextMutation.html">TextMutation</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/mutation.splice.js~SpliceTextMutation.html">SpliceTextMutation</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-external">E</span><span data-ice="name"><span><a href="https://nodejs.org/api/events.html#events_class_eventemitter">events~EventEmitter</a></span></span></li>
 </ul>
@@ -45,7 +46,7 @@
 </nav>
 
 <div class="content" data-ice="content"><h1 data-ice="title">src/document.js</h1>
-<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import { each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from &apos;lodash&apos;;
+<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">import { defaults, each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from &apos;lodash&apos;;
 import EventEmitter from &apos;events&apos;;
 import { fn as isGeneratorFunction } from &apos;is-generator&apos;;
 import Promise from &apos;bluebird&apos;;
@@ -53,6 +54,7 @@ import Promise from &apos;bluebird&apos;;
 import SpliceTextMutation from &apos;./mutation.splice&apos;;
 import TextElement from &apos;./element&apos;;
 import ParserBuilder from &apos;./parser-builder&apos;;
+import TextQuery from &apos;./query&apos;;
 
 /**
  * A plain text document that can be mutated (or modified).
@@ -278,6 +280,15 @@ export default class TextDocument extends EventEmitter {
    */
   remove(element, start, end) {
     return performMutation(this, new SpliceTextMutation(element, start, end - start));
+  }
+
+  /**
+   * Returns a text query for this document.
+   *
+   * @returns {TextQuery} A text query.
+   */
+  query() {
+    return new TextQuery(this);
   }
 
   /**

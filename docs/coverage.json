@@ -1,7 +1,7 @@
 {
-  "coverage": "97.26%",
-  "expectCount": 73,
-  "actualCount": 71,
+  "coverage": "97.64%",
+  "expectCount": 85,
+  "actualCount": 83,
   "files": {
     "src/element.configurable.js": {
       "expectCount": 5,
@@ -19,8 +19,8 @@
       "undocumentLines": []
     },
     "src/document.js": {
-      "expectCount": 19,
-      "actualCount": 19,
+      "expectCount": 20,
+      "actualCount": 20,
       "undocumentLines": []
     },
     "src/element.js": {
@@ -34,6 +34,11 @@
     "src/mutation.js": {
       "expectCount": 7,
       "actualCount": 7,
+      "undocumentLines": []
+    },
+    "src/query.js": {
+      "expectCount": 11,
+      "actualCount": 11,
       "undocumentLines": []
     },
     "src/range.js": {

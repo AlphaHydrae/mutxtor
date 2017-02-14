@@ -3,7 +3,7 @@
     "__docId__": 0,
     "kind": "file",
     "name": "src/document.js",
-    "content": "import { each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';\nimport EventEmitter from 'events';\nimport { fn as isGeneratorFunction } from 'is-generator';\nimport Promise from 'bluebird';\n\nimport SpliceTextMutation from './mutation.splice';\nimport TextElement from './element';\nimport ParserBuilder from './parser-builder';\n\n/**\n * A plain text document that can be mutated (or modified).\n *\n * To mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser} or {@link TextDocument#buildParser}.\n *\n * Parsers must be generator functions which parse the document and yield the text elements they identify.\n * These elements must be subclasses of {@link TextElement} and must be yielded in the order they are found in the document.\n * If the element needs to be mutated, its subclass must know how to modify its own text or the document to obtain the desired end result.\n * See {@link ParserBuilder} for an example of how to create a parser.\n *\n * When you have added all the parsers you need, call {@link TextDocument#mutate}.\n * This will trigger the parsing, then mutate each element one by one until the end of the document has been reached.\n *\n * ## Events\n *\n * A text document is an {@link events~EventEmitter} that emits the following events:\n *\n * * `element` - Emitted after calling {@link TextDocument#mutate} while the parsing is in progress, for each new element identified by a parser.\n *   The parsed {@link TextElement} is provided to listeners.\n * * `parsed` - Emitted after calling {@link TextDocument#mutate} when parsing the document is complete.\n * * `mutate` - Emitted after calling {@link TextDocument#mutate} while the document is being mutated, once for each element that triggered a mutation.\n *   The {@link TextMutation} object describing the change is provided to listeners.\n */\nexport default class TextDocument extends EventEmitter {\n\n  /**\n   * Creates a text document.\n   *\n   * @param {string} text - The document's text.\n   */\n  constructor(text) {\n    super();\n\n    /**\n     * The document's text.\n     * @type {string}\n     */\n    this.text = text;\n\n    /**\n     * The document's parsers.\n     * @type {Array<function>}\n     */\n    this.parsers = [];\n\n    /**\n     * The {@link TextElement} objects identified in the document by the parsers.\n     * @type {Array<TextElement>}\n     */\n    this.elements = [];\n\n    // TODO: automatically update max listeners\n    this.setMaxListeners(1000);\n  }\n\n  /**\n   * Adds a parser for this document.\n   *\n   * Parsers will be invoked when calling {@link TextDocument#mutate}.\n   *\n   * @param {function} parser - A generator function that yields {@link TextElement} objects in order, or a function that returns an ordered array of parsed {@link TextElement} objects.\n   * @returns {TextDocument} This document.\n   */\n  addParser(parser) {\n    if (!isFunction(parser)) {\n      throw new Error('Parser must be a function or a generator function');\n    } else if (!isGeneratorFunction(parser)) {\n      parser = toGenerator(this, parser);\n    }\n\n    this.parsers.push(parser);\n\n    return this;\n  }\n\n  /**\n   * Returns a parser builder for this document.\n   * Any argument is passed to the builder's constructor as additional arguments after this document.\n   *\n   * The returned builder will add a parser to this document when calling {@link ParserBuilder#add}.\n   *\n   * @returns {ParserBuilder} A parser builder for this document.\n   */\n  buildParser(...args) {\n    return new ParserBuilder(this, ...args);\n  }\n\n  /**\n   * Adds a text element to this document.\n   *\n   * The element must not overlap any other element already present in the document.\n   *\n   * @param {TextElement} element - The text element to add.\n   * @returns {TextDocument} This document.\n   */\n  addElement(element) {\n\n    if (isEmpty(this.elements) || element.start >= last(this.elements).end) {\n      // If there are no elements yet, or this element is after the last element, simply add it to the list.\n      this.elements.push(element);\n    } else {\n\n      // Otherwise, perform a binary search to find the correct index to insert the element\n      // so that its position in the array is consistent with its position in the text.\n      const elementIndex = sortedIndexBy(this.elements, element, (e) => e.start);\n\n      // Ensure that the element does not overlap with the previous element.\n      const previousElement = this.elements[elementIndex - 1];\n      if (previousElement && previousElement.overlaps(element)) {\n        throw new Error('Previous element ' + previousElement + ' overlaps with new element ' + element);\n      }\n\n      // Ensure that the element does not overlap with the next element.\n      const nextElement = this.elements[elementIndex];\n      if (nextElement && nextElement.overlaps(element)) {\n        throw new Error('Next element ' + nextElement + ' overlaps with new element ' + element);\n      }\n\n      // Insert the element.\n      this.elements.splice(elementIndex, 0, element);\n    }\n\n    this.emit('element', element);\n\n    return this;\n  }\n\n  /**\n   * Removes the specified element from this document.\n   *\n   * @param {TextElement} element - The element to remove.\n   * @returns {TextDocument} This document.\n   */\n  removeElement(element) {\n\n    const index = this.elements.indexOf(element);\n    if (index < 0) {\n      throw new Error('Element ' + element + ' is not in this document');\n    }\n\n    this.elements.splice(index, 1);\n\n    return this;\n  }\n\n  /**\n   * Mutates this document.\n   *\n   * This is done in two steps:\n   *\n   * 1. All parsers will be invoked and used to parse the entire document.\n   * 2. All identified text elements will be mutated one by one in order.\n   *\n   * @returns {Promise<TextDocument>} A promise that will be resolved when the mutation is complete.\n   */\n  mutate() {\n\n    parseTextElements(this);\n    this.emit('parsed');\n\n    let promise = Promise.resolve();\n    each(this.elements.slice(), (element) => promise = promise.then(() => element.mutate()));\n    promise = promise.return(this);\n\n    return promise;\n  }\n\n  /**\n   * Performs a text element mutation that appends text at the end of this document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {string} text - The text to append.\n   * @returns {TextDocument} This document.\n   */\n  append(element, text) {\n    return this.insert(element, this.text.length, text);\n  }\n\n  /**\n   * Performs a text element mutation that prepends text to the beginning of this document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {string} text - The text to prepend.\n   * @returns {TextDocument} This document.\n   */\n  prepend(element, text) {\n    return this.insert(element, 0, text);\n  }\n\n  /**\n   * Performs a text element mutation that inserts additional text into the document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} index - The index at which to insert the text.\n   * @param {string} text - The text to insert.\n   * @returns {TextDocument} This document.\n   */\n  insert(element, index, text) {\n    return performMutation(this, new SpliceTextMutation(element, index, 0, text));\n  }\n\n  /**\n   * Performs a text element mutation that replaces part of the text in this document by another text.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} start - The start index (inclusive) of the text range to replace.\n   * @param {integer} end - The end index (exclusive) of the text range to replace.\n   * @param {string} text - The text to replace the selected range with.\n   * @returns {TextDocument} This document.\n   */\n  replace(element, start, end, text) {\n    return performMutation(this, new SpliceTextMutation(element, start, end - start, text));\n  }\n\n  /**\n   * Performs a text element mutation that removes the element from the document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} start - The start index (inclusive) of the text range to remove.\n   * @param {integer} end - The end index (exclusive) of the text range to remove.\n   * @returns {TextDocument} This document.\n   */\n  remove(element, start, end) {\n    return performMutation(this, new SpliceTextMutation(element, start, end - start));\n  }\n\n  /**\n   * Finds the first text element in this document that matches the specified conditions.\n   *\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The first element matching the predicate, or `undefined`.\n   */\n  find(predicate) {\n    return find(this.elements, predicate);\n  }\n\n  /**\n   * Finds the last text element in this document that matches the specified conditions.\n   *\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findLast(predicate) {\n    return findLast(this.elements, predicate);\n  }\n\n  /**\n   * Finds the first text element after the specified element in this document that matches the specified conditions.\n   *\n   * @param {TextElement} element - The element after which to search.\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findNext(element, predicate) {\n    if (!includes(this.elements, element)) {\n      throw new Error('Element ' + element + ' is not in document');\n    }\n\n    return this.find((e) => e.start > element.start && predicate(e));\n  }\n\n  /**\n   * Finds the last text element before the specified element in this document that matches the specified conditions.\n   *\n   * @param {TextElement} element - The element before which to search.\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findPrevious(element, predicate) {\n    if (!includes(this.elements, element)) {\n      throw new Error('Element ' + element + ' is not in document');\n    }\n\n    return this.findLast((e) => e.start < element.start && predicate(e));\n  }\n}\n\n// Transforms a function that returns a list to a generator function that yields the items of that list.\nfunction toGenerator(document, parser) {\n  return function*() {\n\n    var elements = parser(document);\n    if (!isArray(elements)) {\n      throw new Error('Parser must be a function that returns an array of ordered TextElement objects');\n    }\n\n    while (elements.length) {\n      yield elements.shift();\n    }\n  };\n}\n\nfunction performMutation(document, mutation) {\n  document.text = mutation.apply(document.text);\n  document.emit('mutate', mutation);\n  return this;\n}\n\nfunction parseTextElements(document) {\n\n  // Get the parsers' iterators (parsers are generator functions).\n  let iterators = document.parsers.map((parser) => parser(document));\n\n  // Get the first text element yielded by each parser.\n  each(iterators, parseNextTextElement);\n\n  // Reject parsers that yielded no element.\n  iterators = reject(iterators, parserIsDone);\n\n  // While there are still parsers with text elements...\n  while (!every(iterators, parserIsDone)) {\n\n    // Sort the last retrieved text elements by start index.\n    iterators.sort((a, b) => a.element.start - b.element.start);\n\n    // Add the first one to the document.\n    const element = iterators[0].element;\n    document.addElement(element);\n\n    // Get the parser's next text element.\n    parseNextTextElement(iterators[0]);\n\n    // If the parser is done, remove it from the list of active parsers.\n    if (parserIsDone(iterators[0])) {\n      iterators.shift();\n    }\n  }\n}\n\nfunction parserIsDone(parserIterator) {\n  return parserIterator.current && parserIterator.current.done;\n}\n\nfunction parseNextTextElement(parserIterator) {\n\n  var previousElement = parserIterator.element;\n\n  parserIterator.current = parserIterator.next();\n  parserIterator.element = parserIterator.current.value;\n\n  if (!parserIsDone(parserIterator) && !(parserIterator.element instanceof TextElement)) {\n    throw new Error('Parsers must return TextElement objects; got ' + typeof(parserIterator.element));\n  } else if (!parserIsDone(parserIterator) && previousElement && parserIterator.element.start <= previousElement.start) {\n    throw new Error('Parsers must yield TextElement objects in order; got ' + parserIterator.element + ' which starts at index ' + parserIterator.element.start + ' while the previous element ' + previousElement + ' starts at index ' + previousElement.start);\n  }\n\n  return parserIterator.element;\n}\n",
+    "content": "import { defaults, each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';\nimport EventEmitter from 'events';\nimport { fn as isGeneratorFunction } from 'is-generator';\nimport Promise from 'bluebird';\n\nimport SpliceTextMutation from './mutation.splice';\nimport TextElement from './element';\nimport ParserBuilder from './parser-builder';\nimport TextQuery from './query';\n\n/**\n * A plain text document that can be mutated (or modified).\n *\n * To mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser} or {@link TextDocument#buildParser}.\n *\n * Parsers must be generator functions which parse the document and yield the text elements they identify.\n * These elements must be subclasses of {@link TextElement} and must be yielded in the order they are found in the document.\n * If the element needs to be mutated, its subclass must know how to modify its own text or the document to obtain the desired end result.\n * See {@link ParserBuilder} for an example of how to create a parser.\n *\n * When you have added all the parsers you need, call {@link TextDocument#mutate}.\n * This will trigger the parsing, then mutate each element one by one until the end of the document has been reached.\n *\n * ## Events\n *\n * A text document is an {@link events~EventEmitter} that emits the following events:\n *\n * * `element` - Emitted after calling {@link TextDocument#mutate} while the parsing is in progress, for each new element identified by a parser.\n *   The parsed {@link TextElement} is provided to listeners.\n * * `parsed` - Emitted after calling {@link TextDocument#mutate} when parsing the document is complete.\n * * `mutate` - Emitted after calling {@link TextDocument#mutate} while the document is being mutated, once for each element that triggered a mutation.\n *   The {@link TextMutation} object describing the change is provided to listeners.\n */\nexport default class TextDocument extends EventEmitter {\n\n  /**\n   * Creates a text document.\n   *\n   * @param {string} text - The document's text.\n   */\n  constructor(text) {\n    super();\n\n    /**\n     * The document's text.\n     * @type {string}\n     */\n    this.text = text;\n\n    /**\n     * The document's parsers.\n     * @type {Array<function>}\n     */\n    this.parsers = [];\n\n    /**\n     * The {@link TextElement} objects identified in the document by the parsers.\n     * @type {Array<TextElement>}\n     */\n    this.elements = [];\n\n    // TODO: automatically update max listeners\n    this.setMaxListeners(1000);\n  }\n\n  /**\n   * Adds a parser for this document.\n   *\n   * Parsers will be invoked when calling {@link TextDocument#mutate}.\n   *\n   * @param {function} parser - A generator function that yields {@link TextElement} objects in order, or a function that returns an ordered array of parsed {@link TextElement} objects.\n   * @returns {TextDocument} This document.\n   */\n  addParser(parser) {\n    if (!isFunction(parser)) {\n      throw new Error('Parser must be a function or a generator function');\n    } else if (!isGeneratorFunction(parser)) {\n      parser = toGenerator(this, parser);\n    }\n\n    this.parsers.push(parser);\n\n    return this;\n  }\n\n  /**\n   * Returns a parser builder for this document.\n   * Any argument is passed to the builder's constructor as additional arguments after this document.\n   *\n   * The returned builder will add a parser to this document when calling {@link ParserBuilder#add}.\n   *\n   * @returns {ParserBuilder} A parser builder for this document.\n   */\n  buildParser(...args) {\n    return new ParserBuilder(this, ...args);\n  }\n\n  /**\n   * Adds a text element to this document.\n   *\n   * The element must not overlap any other element already present in the document.\n   *\n   * @param {TextElement} element - The text element to add.\n   * @returns {TextDocument} This document.\n   */\n  addElement(element) {\n\n    if (isEmpty(this.elements) || element.start >= last(this.elements).end) {\n      // If there are no elements yet, or this element is after the last element, simply add it to the list.\n      this.elements.push(element);\n    } else {\n\n      // Otherwise, perform a binary search to find the correct index to insert the element\n      // so that its position in the array is consistent with its position in the text.\n      const elementIndex = sortedIndexBy(this.elements, element, (e) => e.start);\n\n      // Ensure that the element does not overlap with the previous element.\n      const previousElement = this.elements[elementIndex - 1];\n      if (previousElement && previousElement.overlaps(element)) {\n        throw new Error('Previous element ' + previousElement + ' overlaps with new element ' + element);\n      }\n\n      // Ensure that the element does not overlap with the next element.\n      const nextElement = this.elements[elementIndex];\n      if (nextElement && nextElement.overlaps(element)) {\n        throw new Error('Next element ' + nextElement + ' overlaps with new element ' + element);\n      }\n\n      // Insert the element.\n      this.elements.splice(elementIndex, 0, element);\n    }\n\n    this.emit('element', element);\n\n    return this;\n  }\n\n  /**\n   * Removes the specified element from this document.\n   *\n   * @param {TextElement} element - The element to remove.\n   * @returns {TextDocument} This document.\n   */\n  removeElement(element) {\n\n    const index = this.elements.indexOf(element);\n    if (index < 0) {\n      throw new Error('Element ' + element + ' is not in this document');\n    }\n\n    this.elements.splice(index, 1);\n\n    return this;\n  }\n\n  /**\n   * Mutates this document.\n   *\n   * This is done in two steps:\n   *\n   * 1. All parsers will be invoked and used to parse the entire document.\n   * 2. All identified text elements will be mutated one by one in order.\n   *\n   * @returns {Promise<TextDocument>} A promise that will be resolved when the mutation is complete.\n   */\n  mutate() {\n\n    parseTextElements(this);\n    this.emit('parsed');\n\n    let promise = Promise.resolve();\n    each(this.elements.slice(), (element) => promise = promise.then(() => element.mutate()));\n    promise = promise.return(this);\n\n    return promise;\n  }\n\n  /**\n   * Performs a text element mutation that appends text at the end of this document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {string} text - The text to append.\n   * @returns {TextDocument} This document.\n   */\n  append(element, text) {\n    return this.insert(element, this.text.length, text);\n  }\n\n  /**\n   * Performs a text element mutation that prepends text to the beginning of this document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {string} text - The text to prepend.\n   * @returns {TextDocument} This document.\n   */\n  prepend(element, text) {\n    return this.insert(element, 0, text);\n  }\n\n  /**\n   * Performs a text element mutation that inserts additional text into the document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} index - The index at which to insert the text.\n   * @param {string} text - The text to insert.\n   * @returns {TextDocument} This document.\n   */\n  insert(element, index, text) {\n    return performMutation(this, new SpliceTextMutation(element, index, 0, text));\n  }\n\n  /**\n   * Performs a text element mutation that replaces part of the text in this document by another text.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} start - The start index (inclusive) of the text range to replace.\n   * @param {integer} end - The end index (exclusive) of the text range to replace.\n   * @param {string} text - The text to replace the selected range with.\n   * @returns {TextDocument} This document.\n   */\n  replace(element, start, end, text) {\n    return performMutation(this, new SpliceTextMutation(element, start, end - start, text));\n  }\n\n  /**\n   * Performs a text element mutation that removes the element from the document.\n   *\n   * @param {TextElement} element - The element that triggered the mutation.\n   * @param {integer} start - The start index (inclusive) of the text range to remove.\n   * @param {integer} end - The end index (exclusive) of the text range to remove.\n   * @returns {TextDocument} This document.\n   */\n  remove(element, start, end) {\n    return performMutation(this, new SpliceTextMutation(element, start, end - start));\n  }\n\n  /**\n   * Returns a text query for this document.\n   *\n   * @returns {TextQuery} A text query.\n   */\n  query() {\n    return new TextQuery(this);\n  }\n\n  /**\n   * Finds the first text element in this document that matches the specified conditions.\n   *\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The first element matching the predicate, or `undefined`.\n   */\n  find(predicate) {\n    return find(this.elements, predicate);\n  }\n\n  /**\n   * Finds the last text element in this document that matches the specified conditions.\n   *\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findLast(predicate) {\n    return findLast(this.elements, predicate);\n  }\n\n  /**\n   * Finds the first text element after the specified element in this document that matches the specified conditions.\n   *\n   * @param {TextElement} element - The element after which to search.\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findNext(element, predicate) {\n    if (!includes(this.elements, element)) {\n      throw new Error('Element ' + element + ' is not in document');\n    }\n\n    return this.find((e) => e.start > element.start && predicate(e));\n  }\n\n  /**\n   * Finds the last text element before the specified element in this document that matches the specified conditions.\n   *\n   * @param {TextElement} element - The element before which to search.\n   * @param {function(element: TextElement): boolean} predicate - A function that will be passed each element and should return true if the element matches the desired conditions.\n   * @returns {TextElement|undefined} The last element matching the predicate, or `undefined`.\n   */\n  findPrevious(element, predicate) {\n    if (!includes(this.elements, element)) {\n      throw new Error('Element ' + element + ' is not in document');\n    }\n\n    return this.findLast((e) => e.start < element.start && predicate(e));\n  }\n}\n\n// Transforms a function that returns a list to a generator function that yields the items of that list.\nfunction toGenerator(document, parser) {\n  return function*() {\n\n    var elements = parser(document);\n    if (!isArray(elements)) {\n      throw new Error('Parser must be a function that returns an array of ordered TextElement objects');\n    }\n\n    while (elements.length) {\n      yield elements.shift();\n    }\n  };\n}\n\nfunction performMutation(document, mutation) {\n  document.text = mutation.apply(document.text);\n  document.emit('mutate', mutation);\n  return this;\n}\n\nfunction parseTextElements(document) {\n\n  // Get the parsers' iterators (parsers are generator functions).\n  let iterators = document.parsers.map((parser) => parser(document));\n\n  // Get the first text element yielded by each parser.\n  each(iterators, parseNextTextElement);\n\n  // Reject parsers that yielded no element.\n  iterators = reject(iterators, parserIsDone);\n\n  // While there are still parsers with text elements...\n  while (!every(iterators, parserIsDone)) {\n\n    // Sort the last retrieved text elements by start index.\n    iterators.sort((a, b) => a.element.start - b.element.start);\n\n    // Add the first one to the document.\n    const element = iterators[0].element;\n    document.addElement(element);\n\n    // Get the parser's next text element.\n    parseNextTextElement(iterators[0]);\n\n    // If the parser is done, remove it from the list of active parsers.\n    if (parserIsDone(iterators[0])) {\n      iterators.shift();\n    }\n  }\n}\n\nfunction parserIsDone(parserIterator) {\n  return parserIterator.current && parserIterator.current.done;\n}\n\nfunction parseNextTextElement(parserIterator) {\n\n  var previousElement = parserIterator.element;\n\n  parserIterator.current = parserIterator.next();\n  parserIterator.element = parserIterator.current.value;\n\n  if (!parserIsDone(parserIterator) && !(parserIterator.element instanceof TextElement)) {\n    throw new Error('Parsers must return TextElement objects; got ' + typeof(parserIterator.element));\n  } else if (!parserIsDone(parserIterator) && previousElement && parserIterator.element.start <= previousElement.start) {\n    throw new Error('Parsers must yield TextElement objects in order; got ' + parserIterator.element + ' which starts at index ' + parserIterator.element.start + ' while the previous element ' + previousElement + ' starts at index ' + previousElement.start);\n  }\n\n  return parserIterator.element;\n}\n",
     "static": true,
     "longname": "src/document.js",
     "access": null,
@@ -22,7 +22,7 @@
     "importPath": "mutxtor/src/document.js",
     "importStyle": "TextDocument",
     "description": "A plain text document that can be mutated (or modified).\n\nTo mutate a document, you must first add parsers which will identify elements in the text, using {@link TextDocument#addParser} or {@link TextDocument#buildParser}.\n\nParsers must be generator functions which parse the document and yield the text elements they identify.\nThese elements must be subclasses of {@link TextElement} and must be yielded in the order they are found in the document.\nIf the element needs to be mutated, its subclass must know how to modify its own text or the document to obtain the desired end result.\nSee {@link ParserBuilder} for an example of how to create a parser.\n\nWhen you have added all the parsers you need, call {@link TextDocument#mutate}.\nThis will trigger the parsing, then mutate each element one by one until the end of the document has been reached.\n\n## Events\n\nA text document is an {@link events~EventEmitter} that emits the following events:\n\n* `element` - Emitted after calling {@link TextDocument#mutate} while the parsing is in progress, for each new element identified by a parser.\n  The parsed {@link TextElement} is provided to listeners.\n* `parsed` - Emitted after calling {@link TextDocument#mutate} when parsing the document is complete.\n* `mutate` - Emitted after calling {@link TextDocument#mutate} while the document is being mutated, once for each element that triggered a mutation.\n  The {@link TextMutation} object describing the change is provided to listeners.",
-    "lineNumber": 33,
+    "lineNumber": 34,
     "interface": false,
     "extends": [
       "events~EventEmitter"
@@ -39,7 +39,7 @@
     "longname": "src/document.js~TextDocument#constructor",
     "access": null,
     "description": "Creates a text document.",
-    "lineNumber": 40,
+    "lineNumber": 41,
     "params": [
       {
         "nullable": null,
@@ -62,7 +62,7 @@
     "longname": "src/document.js~TextDocument#text",
     "access": null,
     "description": "The document's text.",
-    "lineNumber": 47,
+    "lineNumber": 48,
     "type": {
       "nullable": null,
       "types": [
@@ -81,7 +81,7 @@
     "longname": "src/document.js~TextDocument#parsers",
     "access": null,
     "description": "The document's parsers.",
-    "lineNumber": 53,
+    "lineNumber": 54,
     "type": {
       "nullable": null,
       "types": [
@@ -100,7 +100,7 @@
     "longname": "src/document.js~TextDocument#elements",
     "access": null,
     "description": "The {@link TextElement} objects identified in the document by the parsers.",
-    "lineNumber": 59,
+    "lineNumber": 60,
     "type": {
       "nullable": null,
       "types": [
@@ -121,7 +121,7 @@
     "longname": "src/document.js~TextDocument#addParser",
     "access": null,
     "description": "Adds a parser for this document.\n\nParsers will be invoked when calling {@link TextDocument#mutate}.",
-    "lineNumber": 73,
+    "lineNumber": 74,
     "unknown": [
       {
         "tagName": "@returns",
@@ -160,7 +160,7 @@
     "longname": "src/document.js~TextDocument#buildParser",
     "access": null,
     "description": "Returns a parser builder for this document.\nAny argument is passed to the builder's constructor as additional arguments after this document.\n\nThe returned builder will add a parser to this document when calling {@link ParserBuilder#add}.",
-    "lineNumber": 93,
+    "lineNumber": 94,
     "unknown": [
       {
         "tagName": "@returns",
@@ -196,7 +196,7 @@
     "longname": "src/document.js~TextDocument#addElement",
     "access": null,
     "description": "Adds a text element to this document.\n\nThe element must not overlap any other element already present in the document.",
-    "lineNumber": 105,
+    "lineNumber": 106,
     "unknown": [
       {
         "tagName": "@returns",
@@ -235,7 +235,7 @@
     "longname": "src/document.js~TextDocument#removeElement",
     "access": null,
     "description": "Removes the specified element from this document.",
-    "lineNumber": 143,
+    "lineNumber": 144,
     "unknown": [
       {
         "tagName": "@returns",
@@ -274,7 +274,7 @@
     "longname": "src/document.js~TextDocument#mutate",
     "access": null,
     "description": "Mutates this document.\n\nThis is done in two steps:\n\n1. All parsers will be invoked and used to parse the entire document.\n2. All identified text elements will be mutated one by one in order.",
-    "lineNumber": 165,
+    "lineNumber": 166,
     "unknown": [
       {
         "tagName": "@returns",
@@ -302,7 +302,7 @@
     "longname": "src/document.js~TextDocument#append",
     "access": null,
     "description": "Performs a text element mutation that appends text at the end of this document.",
-    "lineNumber": 184,
+    "lineNumber": 185,
     "unknown": [
       {
         "tagName": "@returns",
@@ -351,7 +351,7 @@
     "longname": "src/document.js~TextDocument#prepend",
     "access": null,
     "description": "Performs a text element mutation that prepends text to the beginning of this document.",
-    "lineNumber": 195,
+    "lineNumber": 196,
     "unknown": [
       {
         "tagName": "@returns",
@@ -400,7 +400,7 @@
     "longname": "src/document.js~TextDocument#insert",
     "access": null,
     "description": "Performs a text element mutation that inserts additional text into the document.",
-    "lineNumber": 207,
+    "lineNumber": 208,
     "unknown": [
       {
         "tagName": "@returns",
@@ -459,7 +459,7 @@
     "longname": "src/document.js~TextDocument#replace",
     "access": null,
     "description": "Performs a text element mutation that replaces part of the text in this document by another text.",
-    "lineNumber": 220,
+    "lineNumber": 221,
     "unknown": [
       {
         "tagName": "@returns",
@@ -528,7 +528,7 @@
     "longname": "src/document.js~TextDocument#remove",
     "access": null,
     "description": "Performs a text element mutation that removes the element from the document.",
-    "lineNumber": 232,
+    "lineNumber": 233,
     "unknown": [
       {
         "tagName": "@returns",
@@ -579,6 +579,34 @@
   {
     "__docId__": 16,
     "kind": "method",
+    "name": "query",
+    "memberof": "src/document.js~TextDocument",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/document.js~TextDocument#query",
+    "access": null,
+    "description": "Returns a text query for this document.",
+    "lineNumber": 242,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} A text query."
+      }
+    ],
+    "params": [],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "A text query."
+    }
+  },
+  {
+    "__docId__": 17,
+    "kind": "method",
     "name": "find",
     "memberof": "src/document.js~TextDocument",
     "generator": false,
@@ -587,7 +615,7 @@
     "longname": "src/document.js~TextDocument#find",
     "access": null,
     "description": "Finds the first text element in this document that matches the specified conditions.",
-    "lineNumber": 242,
+    "lineNumber": 252,
     "unknown": [
       {
         "tagName": "@returns",
@@ -617,7 +645,7 @@
     }
   },
   {
-    "__docId__": 17,
+    "__docId__": 18,
     "kind": "method",
     "name": "findLast",
     "memberof": "src/document.js~TextDocument",
@@ -627,7 +655,7 @@
     "longname": "src/document.js~TextDocument#findLast",
     "access": null,
     "description": "Finds the last text element in this document that matches the specified conditions.",
-    "lineNumber": 252,
+    "lineNumber": 262,
     "unknown": [
       {
         "tagName": "@returns",
@@ -657,7 +685,7 @@
     }
   },
   {
-    "__docId__": 18,
+    "__docId__": 19,
     "kind": "method",
     "name": "findNext",
     "memberof": "src/document.js~TextDocument",
@@ -667,7 +695,7 @@
     "longname": "src/document.js~TextDocument#findNext",
     "access": null,
     "description": "Finds the first text element after the specified element in this document that matches the specified conditions.",
-    "lineNumber": 263,
+    "lineNumber": 273,
     "unknown": [
       {
         "tagName": "@returns",
@@ -707,7 +735,7 @@
     }
   },
   {
-    "__docId__": 19,
+    "__docId__": 20,
     "kind": "method",
     "name": "findPrevious",
     "memberof": "src/document.js~TextDocument",
@@ -717,7 +745,7 @@
     "longname": "src/document.js~TextDocument#findPrevious",
     "access": null,
     "description": "Finds the last text element before the specified element in this document that matches the specified conditions.",
-    "lineNumber": 278,
+    "lineNumber": 288,
     "unknown": [
       {
         "tagName": "@returns",
@@ -757,7 +785,7 @@
     }
   },
   {
-    "__docId__": 20,
+    "__docId__": 21,
     "kind": "function",
     "name": "toGenerator",
     "memberof": "src/document.js",
@@ -770,7 +798,7 @@
     "importPath": "mutxtor/src/document.js",
     "importStyle": null,
     "description": null,
-    "lineNumber": 288,
+    "lineNumber": 298,
     "undocument": true,
     "unknown": [
       {
@@ -799,7 +827,7 @@
     }
   },
   {
-    "__docId__": 21,
+    "__docId__": 22,
     "kind": "function",
     "name": "performMutation",
     "memberof": "src/document.js",
@@ -812,7 +840,7 @@
     "importPath": "mutxtor/src/document.js",
     "importStyle": null,
     "description": null,
-    "lineNumber": 302,
+    "lineNumber": 312,
     "undocument": true,
     "unknown": [
       {
@@ -841,7 +869,7 @@
     }
   },
   {
-    "__docId__": 22,
+    "__docId__": 23,
     "kind": "function",
     "name": "parseTextElements",
     "memberof": "src/document.js",
@@ -854,7 +882,7 @@
     "importPath": "mutxtor/src/document.js",
     "importStyle": null,
     "description": null,
-    "lineNumber": 308,
+    "lineNumber": 318,
     "undocument": true,
     "unknown": [
       {
@@ -872,7 +900,7 @@
     ]
   },
   {
-    "__docId__": 23,
+    "__docId__": 24,
     "kind": "function",
     "name": "parserIsDone",
     "memberof": "src/document.js",
@@ -885,43 +913,7 @@
     "importPath": "mutxtor/src/document.js",
     "importStyle": null,
     "description": null,
-    "lineNumber": 339,
-    "undocument": true,
-    "unknown": [
-      {
-        "tagName": "@_undocument",
-        "tagValue": ""
-      }
-    ],
-    "params": [
-      {
-        "name": "parserIterator",
-        "types": [
-          "*"
-        ]
-      }
-    ],
-    "return": {
-      "types": [
-        "*"
-      ]
-    }
-  },
-  {
-    "__docId__": 24,
-    "kind": "function",
-    "name": "parseNextTextElement",
-    "memberof": "src/document.js",
-    "generator": false,
-    "async": false,
-    "static": true,
-    "longname": "src/document.js~parseNextTextElement",
-    "access": null,
-    "export": false,
-    "importPath": "mutxtor/src/document.js",
-    "importStyle": null,
-    "description": null,
-    "lineNumber": 343,
+    "lineNumber": 349,
     "undocument": true,
     "unknown": [
       {
@@ -945,9 +937,45 @@
   },
   {
     "__docId__": 25,
+    "kind": "function",
+    "name": "parseNextTextElement",
+    "memberof": "src/document.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/document.js~parseNextTextElement",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/document.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 353,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "parserIterator",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 26,
     "kind": "file",
     "name": "src/element.configurable.js",
-    "content": "import { isFunction } from 'lodash';\n\nimport TextElement from './element';\n\n/**\n * A text element that has a configurable behavior.\n */\nexport default class ConfigurableTextElement extends TextElement {\n\n  /**\n   * Creates a text element with arbitrary data which can be used at mutation time.\n   *\n   * Also calls the `this.initializer` function attached to this element, if any.\n   *\n   * @param {string} document - The document in which the element was found or is to be inserted.\n   * @param {integer} start - The index at which the element's text is found in the document.\n   * @param {string} text - The element's text.\n   * @param {object} data - Data to attach to the element.\n   */\n  constructor(document, start, text, data) {\n    super(document, start, text);\n\n    /**\n     * Arbitrary data that will be available at mutation time.\n     * @type {object}\n     */\n    this.data = data;\n\n    // If an initializer function is defined, call it.\n    // TODO: create a setter for the initializer and the type\n    if (isFunction(this.initialize)) {\n      this.initialize.call(this, data);\n    }\n  }\n\n  /**\n   * Calls the `this.mutator` function attached to this element, if any.\n   */\n  mutate() {\n    // TODO: create a setter for the mutator\n    if (isFunction(this.mutator)) {\n      this.mutator.call(this, this.data);\n    }\n  }\n\n  /**\n   * Returns a string representing this element.\n   */\n  toStringProperties() {\n    return [ 'type' ].concat(super.toStringProperties());\n  }\n\n}\n",
+    "content": "import { isFunction } from 'lodash';\n\nimport TextElement from './element';\n\n/**\n * A text element that has a configurable behavior.\n */\nexport default class ConfigurableTextElement extends TextElement {\n\n  /**\n   * Creates a text element with arbitrary data which can be used at mutation time.\n   *\n   * Also calls the `this.initializer` function attached to this element, if any.\n   *\n   * @param {string} document - The document in which the element was found or is to be inserted.\n   * @param {integer} start - The index at which the element's text is found in the document.\n   * @param {string} text - The element's text.\n   * @param {object} data - Data to attach to the element.\n   */\n  constructor(document, start, text, data) {\n    super(document, start, text);\n\n    /**\n     * Arbitrary data that will be available at mutation time.\n     * @type {object}\n     */\n    this.data = data;\n\n    // If an initializer function is defined, call it.\n    // TODO: create a setter for the initializer and the type\n    if (isFunction(data.initializer)) {\n      data.initializer.call(this, data);\n    }\n  }\n\n  /**\n   * Calls the `this.mutator` function attached to this element, if any.\n   */\n  mutate() {\n    // TODO: create a setter for the mutator\n    if (isFunction(this.mutator)) {\n      this.mutator.call(this, this.data);\n    }\n  }\n\n  /**\n   * Returns a string representing this element.\n   */\n  toStringProperties() {\n    return [ 'type' ].concat(super.toStringProperties());\n  }\n\n}\n",
     "static": true,
     "longname": "src/element.configurable.js",
     "access": null,
@@ -955,7 +983,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 26,
+    "__docId__": 27,
     "kind": "class",
     "name": "ConfigurableTextElement",
     "memberof": "src/element.configurable.js",
@@ -973,7 +1001,7 @@
     ]
   },
   {
-    "__docId__": 27,
+    "__docId__": 28,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/element.configurable.js~ConfigurableTextElement",
@@ -1028,7 +1056,7 @@
     ]
   },
   {
-    "__docId__": 28,
+    "__docId__": 29,
     "kind": "member",
     "name": "data",
     "memberof": "src/element.configurable.js~ConfigurableTextElement",
@@ -1047,7 +1075,7 @@
     }
   },
   {
-    "__docId__": 29,
+    "__docId__": 30,
     "kind": "method",
     "name": "mutate",
     "memberof": "src/element.configurable.js~ConfigurableTextElement",
@@ -1061,7 +1089,7 @@
     "params": []
   },
   {
-    "__docId__": 30,
+    "__docId__": 31,
     "kind": "method",
     "name": "toStringProperties",
     "memberof": "src/element.configurable.js~ConfigurableTextElement",
@@ -1080,7 +1108,7 @@
     }
   },
   {
-    "__docId__": 31,
+    "__docId__": 32,
     "kind": "file",
     "name": "src/element.js",
     "content": "import { each, pick } from 'lodash';\n\nimport TextRange from './range';\nimport { stringify } from './utils';\n\n/**\n * A text element is a part of a {@link TextDocument} that can be mutated.\n *\n * It is identified by its start (inclusive) and end (exclusive) indices in the document.\n * Text elements are identified when parsing a {@link TextDocument}.\n *\n * For example, take the following Markdown document:\n *\n * ```md\n * # Documentation\n *\n * Lorem ipsum dolor sit amet.\n *\n * ## Usage\n *\n * Consectetur adipiscing elit.\n * Maecenas laoreet hendrerit felis eget vulputate.\n *\n * ### Requirements\n *\n * * Aenean quis felis lacus.\n * * Proin lobortis, mauris at congue lacinia.\n * * Erat arcu cursus diam.\n * ```\n *\n * A parser for Markdown headers could identify the following text elements:\n *\n * * `# Documentation` starting at index 0 and ending at index 15.\n * * `## Usage` starting at index 46 and ending at index 54.\n * * `### Requirements` starting at index 135 and ending at index 151.\n *\n * By using a subclass of `TextElement`, the parser might also store additional information\n * about the elements, such as the titles' contents or level in this case.\n */\nexport default class TextElement extends TextRange {\n\n  /**\n   * Creates a text element for the specified document.\n   *\n   * @param {string} document - The document in which the element was found or is to be inserted.\n   * @param {integer} start - The index at which the element's text is found in the document.\n   * @param {string} text - The element's text.\n   */\n  constructor(document, start, text) {\n    // TODO: validate\n    super(start, start + text.length);\n\n    /**\n     * The document in which this text element is located.\n     * @type {TextDocument}\n     */\n    this.document = document;\n\n    /**\n     * @access private\n     */\n    this.documentListeners = {};\n\n    // Keep track of document mutations.\n    this.onDocument('mutate', this.onDocumentMutated);\n  }\n\n  /**\n   * This element's text.\n   * @type {string}\n   */\n  get text() {\n    return this.extractFromText(this.document.text);\n  }\n\n  /**\n   * Mutates this element's text.\n   *\n   * This is an empty implementation which should be overridden in subclasses.\n   * The supplied {@link TextDocument} has many utility methods to insert, modify or remove text.\n   *\n   * @returns {Promise|undefined} A promise which will be resolved when the mutation is complete, or nothing if the mutation was synchronous.\n   */\n  mutate() {\n    // nothing to do\n  }\n\n  /**\n   * Appends text after this element.\n   *\n   * Utility method for use in {@link TextElement#mutate}.\n   *\n   * @param {string} text - The text to append.\n   * @returns {TextElement} This element.\n   *\n   * @example\n   * mutate() {\n   *   this.append(';');\n   * }\n   */\n  append(text) {\n    this.document.insert(this, this.end, text);\n    return this;\n  }\n\n  /**\n   * Prepends text before this element.\n   * The text is not included into the element. Rather, the element is moved forward in the document to take into account the added text.\n   *\n   * Utility method for use in {@link TextElement#mutate}.\n   *\n   * @param {string} text - The text to prepend.\n   * @returns {string} This element.\n   *\n   * @example\n   * mutate() {\n   *   this.prepend('---\\n');\n   * }\n   */\n  prepend(text) {\n    this.document.insert(this, this.start, text);\n    this.start += text.length;\n    this.end += text.length;\n    return this;\n  }\n\n  /**\n   * Replaces this element's text by another text.\n   *\n   * Utility method for use in {@link TextElement#mutate}.\n   *\n   * @param {string} text - The new text.\n   * @returns {string} This element.\n   *\n   * @example\n   * mutate() {\n   *   this.replace('This text is better.');\n   * }\n   */\n  replace(text) {\n    this.document.replace(this, this.start, this.end, text);\n    this.end = this.end + text.length - (this.end - this.start);\n    return this;\n  }\n\n  /**\n   * Removes this element's text from the document.\n   *\n   * This will also remove the element from the document's list of elements,\n   * and remove all of this elements' listeners registered with {@link TextElement#onDocument}.\n   *\n   * Utility method for use in {@link TextElement#mutate}.\n   *\n   * @returns {string} This element.\n   *\n   * @example\n   * mutate() {\n   *   this.remove();\n   * }\n   */\n  remove() {\n    this.document.remove(this, this.start, this.end);\n    this.document.removeElement(this);\n    this.removeDocumentListeners();\n    return this;\n  }\n\n  /**\n   * Registers a listener on a document event.\n   *\n   * Listeners registered with this method can later be removed with {@link TextElement#removeDocumentListeners}.\n   *\n   * @param {string} event - The name of the event to listen to.\n   * @param {function} listener - The callback function.\n   * @param {any} [context] - The context to which the callback function will be bound (`this` by default).\n   * @returns {TextElement} This text element.\n   */\n  onDocument(event, listener, context) {\n\n    const boundListener = listener.bind(context || this);\n    this.document.on(event, boundListener);\n\n    this.documentListeners[event] = this.documentListeners[event] || [];\n    this.documentListeners[event].push(boundListener);\n\n    return this;\n  }\n\n  /**\n   * Unregisters listeners on document events.\n   *\n   * @param {string} [event] - If specified, all the listeners for that event will be unregistered. Otherwise, all listeners for all events will be unregistered.\n   * @returns {TextElement} This text element.\n   */\n  removeDocumentListeners(event) {\n\n    const toRemove = event ? pick(this.documentListeners, event) : this.documentListeners;\n    each(toRemove, (listeners, event) => {\n      each(listeners, (listener) => this.document.removeListener(event, listener));\n    });\n\n    return this;\n  }\n\n  /**\n   * Called when this element's document is mutated.\n   * If the mutation took place before this element in the text, this method\n   * automatically moves the element's start and end indices by the correct amount.\n   *\n   * If the mutation concerns this element, this method does nothing\n   * (it is the responsibility of elements to mutate themselves; this method\n   * only reacts to the mutation of other elements).\n   *\n   * @param {TextMutation} mutation - The mutation that occurred.\n   * @returns {undefined} Nothing.\n   */\n  onDocumentMutated(mutation) {\n    if (mutation.element != this && this.start >= mutation.start) {\n      this.moveBy(mutation.delta);\n    }\n  }\n\n  /**\n   * Returns a string representing this element.\n   *\n   * @returns {string}\n   */\n  toString() {\n    return stringify(this, ...this.toStringProperties());\n  }\n\n  /**\n   * Returns the properties that will be serialized in {@link TextElement#toString}.\n   */\n  toStringProperties() {\n    return [ 'start', 'end', 'text' ];\n  }\n}\n",
@@ -1091,7 +1119,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 32,
+    "__docId__": 33,
     "kind": "class",
     "name": "TextElement",
     "memberof": "src/element.js",
@@ -1109,7 +1137,7 @@
     ]
   },
   {
-    "__docId__": 33,
+    "__docId__": 34,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/element.js~TextElement",
@@ -1154,7 +1182,7 @@
     ]
   },
   {
-    "__docId__": 34,
+    "__docId__": 35,
     "kind": "member",
     "name": "document",
     "memberof": "src/element.js~TextElement",
@@ -1173,7 +1201,7 @@
     }
   },
   {
-    "__docId__": 35,
+    "__docId__": 36,
     "kind": "member",
     "name": "documentListeners",
     "memberof": "src/element.js~TextElement",
@@ -1189,7 +1217,7 @@
     }
   },
   {
-    "__docId__": 36,
+    "__docId__": 37,
     "kind": "get",
     "name": "text",
     "memberof": "src/element.js~TextElement",
@@ -1210,7 +1238,7 @@
     }
   },
   {
-    "__docId__": 37,
+    "__docId__": 38,
     "kind": "method",
     "name": "mutate",
     "memberof": "src/element.js~TextElement",
@@ -1239,7 +1267,7 @@
     }
   },
   {
-    "__docId__": 38,
+    "__docId__": 39,
     "kind": "method",
     "name": "append",
     "memberof": "src/element.js~TextElement",
@@ -1281,7 +1309,7 @@
     }
   },
   {
-    "__docId__": 39,
+    "__docId__": 40,
     "kind": "method",
     "name": "prepend",
     "memberof": "src/element.js~TextElement",
@@ -1323,7 +1351,7 @@
     }
   },
   {
-    "__docId__": 40,
+    "__docId__": 41,
     "kind": "member",
     "name": "start",
     "memberof": "src/element.js~TextElement",
@@ -1346,7 +1374,7 @@
     }
   },
   {
-    "__docId__": 41,
+    "__docId__": 42,
     "kind": "member",
     "name": "end",
     "memberof": "src/element.js~TextElement",
@@ -1369,7 +1397,7 @@
     }
   },
   {
-    "__docId__": 42,
+    "__docId__": 43,
     "kind": "method",
     "name": "replace",
     "memberof": "src/element.js~TextElement",
@@ -1411,7 +1439,7 @@
     }
   },
   {
-    "__docId__": 43,
+    "__docId__": 44,
     "kind": "member",
     "name": "end",
     "memberof": "src/element.js~TextElement",
@@ -1434,7 +1462,7 @@
     }
   },
   {
-    "__docId__": 44,
+    "__docId__": 45,
     "kind": "method",
     "name": "remove",
     "memberof": "src/element.js~TextElement",
@@ -1465,7 +1493,7 @@
     }
   },
   {
-    "__docId__": 45,
+    "__docId__": 46,
     "kind": "method",
     "name": "onDocument",
     "memberof": "src/element.js~TextElement",
@@ -1524,7 +1552,7 @@
     }
   },
   {
-    "__docId__": 46,
+    "__docId__": 47,
     "kind": "method",
     "name": "removeDocumentListeners",
     "memberof": "src/element.js~TextElement",
@@ -1563,7 +1591,7 @@
     }
   },
   {
-    "__docId__": 47,
+    "__docId__": 48,
     "kind": "method",
     "name": "onDocumentMutated",
     "memberof": "src/element.js~TextElement",
@@ -1602,7 +1630,7 @@
     }
   },
   {
-    "__docId__": 48,
+    "__docId__": 49,
     "kind": "method",
     "name": "toString",
     "memberof": "src/element.js~TextElement",
@@ -1630,7 +1658,7 @@
     }
   },
   {
-    "__docId__": 49,
+    "__docId__": 50,
     "kind": "method",
     "name": "toStringProperties",
     "memberof": "src/element.js~TextElement",
@@ -1649,7 +1677,7 @@
     }
   },
   {
-    "__docId__": 50,
+    "__docId__": 51,
     "kind": "file",
     "name": "src/index.js",
     "content": "import polyfills from 'babel-polyfill';\n\nimport TextDocument from './document';\nimport TextElement from './element';\nimport ConfigurableTextElement from './element.configurable';\nimport TextMutation from './mutation';\nimport SpliceTextMutation from './mutation.splice';\nimport ParserBuilder from './parser-builder';\nimport TextRange from './range';\n\nexport { ConfigurableTextElement, ParserBuilder, SpliceTextMutation, TextDocument, TextElement, TextMutation, TextRange };\n\nexport default {\n  ConfigurableTextElement: ConfigurableTextElement,\n  ParserBuilder: ParserBuilder,\n  SpliceTextMutation: SpliceTextMutation,\n  TextDocument: TextDocument,\n  TextElement: TextElement,\n  TextMutation: TextMutation,\n  TextRange: TextRange\n};\n\n/**\n * @external {events~EventEmitter} https://nodejs.org/api/events.html#events_class_eventemitter\n */\n",
@@ -1660,7 +1688,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 51,
+    "__docId__": 52,
     "kind": "external",
     "name": "events~EventEmitter",
     "externalLink": "https://nodejs.org/api/events.html#events_class_eventemitter",
@@ -1671,7 +1699,7 @@
     "description": ""
   },
   {
-    "__docId__": 52,
+    "__docId__": 53,
     "kind": "file",
     "name": "src/mutation.js",
     "content": "/**\n * A change in a text document.\n *\n * This is an abstract class that does nothing.\n * It should be subclasses and its methods overriden.\n */\nexport default class TextMutation {\n\n  /**\n   * Creates a new text mutation concerning the specified text element.\n   *\n   * @param {TextElement} element - The text element being mutated.\n   */\n  constructor(element) {\n    // TODO: validate\n    /**\n     * The text element being mutated.\n     * @type {TextElement}\n     */\n    this.element = element;\n  }\n\n  /**\n   * The start index at which this mutation takes place in the text document.\n   *\n   * If the mutation affects an existing range of text, this must be the start index (inclusive) of that range.\n   * If the mutation only adds new text, this must be the index at which that text will be inserted.\n   *\n   * @returns {integer} The index at which this mutation takes place in the text document.\n   */\n  get start() {\n    return undefined;\n  }\n\n  /**\n   * The end index at which this mutation takes place in the text document.\n   *\n   * If the mutation affects an existing range of text, this must be the end index (exclusive) of that range.\n   * If the mutation only adds new text, this must be `undefined`.\n   *\n   * @returns {integer|undefined} The end index (exclusive) of the existing text range affected by this mutation, or `undefined` if the mutation only adds new text.\n   */\n  get end() {\n    return undefined;\n  }\n\n  /**\n   * The positive or negative difference of the total length of the text document after the mutation is applied.\n   *\n   * * If the mutation adds 3 characters, the delta is 3.\n   * * If the mutation adds 5 characters and removes 7, the delta is -2.\n   *\n   * @returns {integer} The number of characters added to or removed from the document by this mutation.\n   */\n  get delta() {\n    return 0;\n  }\n\n  /**\n   * Applies this mutation to the specified text.\n   *\n   * @param {string} text - The text to change.\n   * @returns {string} The changed text.\n   */\n  apply(text) {\n    return text;\n  }\n\n}\n",
@@ -1682,7 +1710,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 53,
+    "__docId__": 54,
     "kind": "class",
     "name": "TextMutation",
     "memberof": "src/mutation.js",
@@ -1697,7 +1725,7 @@
     "interface": false
   },
   {
-    "__docId__": 54,
+    "__docId__": 55,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/mutation.js~TextMutation",
@@ -1722,7 +1750,7 @@
     ]
   },
   {
-    "__docId__": 55,
+    "__docId__": 56,
     "kind": "member",
     "name": "element",
     "memberof": "src/mutation.js~TextMutation",
@@ -1741,7 +1769,7 @@
     }
   },
   {
-    "__docId__": 56,
+    "__docId__": 57,
     "kind": "get",
     "name": "start",
     "memberof": "src/mutation.js~TextMutation",
@@ -1773,7 +1801,7 @@
     }
   },
   {
-    "__docId__": 57,
+    "__docId__": 58,
     "kind": "get",
     "name": "end",
     "memberof": "src/mutation.js~TextMutation",
@@ -1806,7 +1834,7 @@
     }
   },
   {
-    "__docId__": 58,
+    "__docId__": 59,
     "kind": "get",
     "name": "delta",
     "memberof": "src/mutation.js~TextMutation",
@@ -1838,7 +1866,7 @@
     }
   },
   {
-    "__docId__": 59,
+    "__docId__": 60,
     "kind": "method",
     "name": "apply",
     "memberof": "src/mutation.js~TextMutation",
@@ -1877,7 +1905,7 @@
     }
   },
   {
-    "__docId__": 60,
+    "__docId__": 61,
     "kind": "file",
     "name": "src/mutation.splice.js",
     "content": "import TextMutation from './mutation';\n\n/**\n * A text mutation that removes and/or adds characters at a specific index in a text, much like `Array.prototype.splice` does for arrays.\n *\n * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice\n */\nexport default class SpliceTextMutation extends TextMutation {\n\n  /**\n   * Creates a splice mutation.\n   *\n   * @param {TextElement} element - The text element being mutated.\n   * @param {integer} index - The index in the text document at which to remove and/or add characters.\n   * @param {integer} removeCount - How many characters to remove at the specified index (can be 0).\n   * @param {string} [textToAdd] - The text to add at the specified index (can be omitted if you only need to remove text).\n   */\n  constructor(element, index, removeCount, textToAdd) {\n    // TODO: validate\n    super(element);\n\n    /**\n     * The index in the text document at which to remove and/or add characters.\n     * @type {integer}\n     */\n    this.index = index;\n\n    /**\n     * How many characters to remove at the specified index.\n     * @type {integer}\n     */\n    this.removeCount = removeCount;\n\n    /**\n     * The text to add at the specified index.\n     * @type {string}\n     */\n    this.textToAdd = textToAdd;\n  }\n\n  /**\n   * Returns the index at which splicing takes place in the text document.\n   *\n   * @returns {integer} The index at which splicing takes place.\n   */\n  get start() {\n    return this.index;\n  }\n\n  /**\n   * Returns the end index (exclusive) of the text range removed by the mutation, if any.\n   *\n   * @returns {integer|undefined} The end index (exclusive) of the text range removed by the mutation, or `undefined` if it only adds new text.\n   */\n  get end() {\n    return this.removeCount ? this.index + this.removeCount : undefined;\n  }\n\n  /**\n   * Returns the difference between the length of the added text and the number of removed characters.\n   *\n   * @returns {integer} The number of characters added to or removed from the document by this mutation.\n   */\n  get delta() {\n    return (this.removeCount ? -this.removeCount : 0) + (this.textToAdd ? this.textToAdd.length : 0);\n  }\n\n  /**\n   * Applies this mutation to the specified text.\n   *\n   * @param {string} text - The text to change.\n   * @returns {string} The changed text.\n   */\n  apply(text) {\n    if (this.removeCount) {\n      text = text.slice(0, this.index) + text.slice(this.index + this.removeCount);\n    }\n\n    if (this.textToAdd) {\n      text = text.slice(0, this.index) + this.textToAdd + text.slice(this.index);\n    }\n\n    return text;\n  }\n\n}\n",
@@ -1888,7 +1916,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 61,
+    "__docId__": 62,
     "kind": "class",
     "name": "SpliceTextMutation",
     "memberof": "src/mutation.splice.js",
@@ -1909,7 +1937,7 @@
     ]
   },
   {
-    "__docId__": 62,
+    "__docId__": 63,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -1964,7 +1992,7 @@
     ]
   },
   {
-    "__docId__": 63,
+    "__docId__": 64,
     "kind": "member",
     "name": "index",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -1983,7 +2011,7 @@
     }
   },
   {
-    "__docId__": 64,
+    "__docId__": 65,
     "kind": "member",
     "name": "removeCount",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2002,7 +2030,7 @@
     }
   },
   {
-    "__docId__": 65,
+    "__docId__": 66,
     "kind": "member",
     "name": "textToAdd",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2021,7 +2049,7 @@
     }
   },
   {
-    "__docId__": 66,
+    "__docId__": 67,
     "kind": "get",
     "name": "start",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2053,7 +2081,7 @@
     }
   },
   {
-    "__docId__": 67,
+    "__docId__": 68,
     "kind": "get",
     "name": "end",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2086,7 +2114,7 @@
     }
   },
   {
-    "__docId__": 68,
+    "__docId__": 69,
     "kind": "get",
     "name": "delta",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2118,7 +2146,7 @@
     }
   },
   {
-    "__docId__": 69,
+    "__docId__": 70,
     "kind": "method",
     "name": "apply",
     "memberof": "src/mutation.splice.js~SpliceTextMutation",
@@ -2157,10 +2185,10 @@
     }
   },
   {
-    "__docId__": 70,
+    "__docId__": 71,
     "kind": "file",
     "name": "src/parser-builder.js",
-    "content": "import { extend, pick } from 'lodash';\n\nimport ConfigurableTextElement from './element.configurable';\n\n/**\n * A chainable builder to add a text parser to a {@link TextDocument}.\n *\n * {@link TextDocument} parsers are generator functions that must return {@link TextElement} objects, usually a subclass.\n * This builder simplifies making such a function.\n *\n * @example\n * // Adds a parser that will prepend a horizontal rule before all titles in a Markdown document (except the main title).\n * document.buildParser('MarkdownTitle').regexp(/^(#+)\\s*(.+)$/gm).mutate(function(data) {\n *   const titleLevel = data.match[1].length;\n *   if (titleLevel >= 2) {\n *     this.prepend('---\\n');\n *   }\n * }).add();\n */\nexport default class ParserBuilder {\n\n  /**\n   * Creates a builder that will add a parser to the specified document.\n   *\n   * @param {TextDocument} document - The document to add the parser to.\n   * @param {string} [type] - An optional type that will be set on parsed {@link TextElement} objects.\n   * This can be useful to distinguish between different element types since all elements parsed by this build's parser will be instances of the same {@link TextElement} subclass.\n   */\n  constructor(document, type) {\n\n    /**\n     * The document to which this builder will add parsers.\n     * @type {TextDocument}\n     */\n    this.document = document;\n\n    if (type !== undefined) {\n      /**\n       * The type of parsed {@link TextElement} objects.\n       * @type {string}\n       */\n      this.type = type;\n    }\n  }\n\n  /**\n   * Configures the parser to look for text elements matching the specified regular expression in the document.\n   *\n   * The regular expression can have the global flag or not, depending on whether you need to parse a single or multiple elements.\n   *\n   * @param {RegExp} regexp - The regular expression to use to find text elements.\n   * @returns {ParserBuilder} This builder.\n   */\n  regexp(regexp) {\n\n    /**\n     * @access private\n     */\n    this.generator = regexpGeneratorFactory(regexp, (document, match) => {\n      return createElement(this, match.index, match[0], {\n        match: match\n      });\n    });\n\n    return this;\n  }\n\n  /**\n   * Sets the type that will be set on parsed {@link TextElement} objects.\n   *\n   * This overrides the type supplied to the constructor.\n   *\n   * @param {string} type - The type to set on parsed {@link TextElement} objects.\n   * @returns {ParserBuilder} This builder.\n   */\n  elementType(type) {\n    this.type = type;\n    return this;\n  }\n\n  /**\n   * Sets the initializer function that will be invoked for each parsed {@link TextElement} object.\n   * It will be bound to the parsed object.\n   *\n   * @param {function} initializer - An initializer function.\n   * @returns {ParserBuilder} This builder.\n   */\n  initialize(initializer) {\n    /**\n     * @access private\n     */\n    this.initializer = initializer;\n    return this;\n  }\n\n  /**\n   * Sets the mutator function that will be invoked when each parsed {@link TextElement} object is mutated.\n   * It will be bound to the parsed object.\n   *\n   * @param {function} mutator - A mutator function.\n   * @returns {ParserBuilder} This builder.\n   */\n  mutate(mutator) {\n    /**\n     * @access private\n     */\n    this.mutator = mutator;\n    return this;\n  }\n\n  /**\n   * Adds the configured parser to this builder's document.\n   *\n   * @returns {ParserBuilder} This builder.\n   */\n  add() {\n    this.document.addParser(this.generator);\n    return this;\n  }\n\n}\n\nfunction createElement(builder, start, text, data) {\n  const element = new ConfigurableTextElement(builder.document, start, text, data);\n  extend(element, pick(builder, 'initializer', 'mutator', 'type'));\n  return element;\n}\n\nfunction regexpGeneratorFactory(regexp, factory) {\n  return function*(document) {\n\n    let match;\n    if (!regexp.global) {\n      if ((match = regexp.exec(document.text)) !== null) {\n        yield factory(document, match);\n      }\n\n      return;\n    }\n\n    let index;\n    while ((match = regexp.exec(document.text)) !== null) {\n      if (match.index === index) {\n        throw new Error('Parser must not match the same text twice (at index ' + index + ')');\n      }\n\n      index = match.index;\n      yield factory(document, match);\n    }\n  };\n}\n",
+    "content": "import { extend, pick } from 'lodash';\n\nimport ConfigurableTextElement from './element.configurable';\n\n/**\n * A chainable builder to add a text parser to a {@link TextDocument}.\n *\n * {@link TextDocument} parsers are generator functions that must return {@link TextElement} objects, usually a subclass.\n * This builder simplifies making such a function.\n *\n * @example\n * // Adds a parser that will prepend a horizontal rule before all titles in a Markdown document (except the main title).\n * document.buildParser('MarkdownTitle').regexp(/^(#+)\\s*(.+)$/gm).mutate(function(data) {\n *   const titleLevel = data.match[1].length;\n *   if (titleLevel >= 2) {\n *     this.prepend('---\\n');\n *   }\n * }).add();\n */\nexport default class ParserBuilder {\n\n  /**\n   * Creates a builder that will add a parser to the specified document.\n   *\n   * @param {TextDocument} document - The document to add the parser to.\n   * @param {string} [type] - An optional type that will be set on parsed {@link TextElement} objects.\n   * This can be useful to distinguish between different element types since all elements parsed by this build's parser will be instances of the same {@link TextElement} subclass.\n   */\n  constructor(document, type) {\n\n    /**\n     * The document to which this builder will add parsers.\n     * @type {TextDocument}\n     */\n    this.document = document;\n\n    if (type !== undefined) {\n      /**\n       * The type of parsed {@link TextElement} objects.\n       * @type {string}\n       */\n      this.type = type;\n    }\n  }\n\n  /**\n   * Configures the parser to look for text elements matching the specified regular expression in the document.\n   *\n   * The regular expression can have the global flag or not, depending on whether you need to parse a single or multiple elements.\n   *\n   * @param {RegExp} regexp - The regular expression to use to find text elements.\n   * @returns {ParserBuilder} This builder.\n   */\n  regexp(regexp) {\n\n    /**\n     * @access private\n     */\n    this.generator = regexpGeneratorFactory(regexp, (document, match) => {\n      return createElement(this, match.index, match[0], {\n        match: match\n      });\n    });\n\n    return this;\n  }\n\n  /**\n   * Sets the type that will be set on parsed {@link TextElement} objects.\n   *\n   * This overrides the type supplied to the constructor.\n   *\n   * @param {string} type - The type to set on parsed {@link TextElement} objects.\n   * @returns {ParserBuilder} This builder.\n   */\n  elementType(type) {\n    this.type = type;\n    return this;\n  }\n\n  /**\n   * Sets the initializer function that will be invoked for each parsed {@link TextElement} object.\n   * It will be bound to the parsed object.\n   *\n   * @param {function} initializer - An initializer function.\n   * @returns {ParserBuilder} This builder.\n   */\n  initialize(initializer) {\n    /**\n     * @access private\n     */\n    this.initializer = initializer;\n    return this;\n  }\n\n  /**\n   * Sets the mutator function that will be invoked when each parsed {@link TextElement} object is mutated.\n   * It will be bound to the parsed object.\n   *\n   * @param {function} mutator - A mutator function.\n   * @returns {ParserBuilder} This builder.\n   */\n  mutate(mutator) {\n    /**\n     * @access private\n     */\n    this.mutator = mutator;\n    return this;\n  }\n\n  /**\n   * Adds the configured parser to this builder's document.\n   *\n   * @returns {ParserBuilder} This builder.\n   */\n  add() {\n    this.document.addParser(this.generator);\n    return this;\n  }\n\n}\n\nfunction createElement(builder, start, text, data) {\n  extend(data, pick(builder, 'initializer'));\n  const element = new ConfigurableTextElement(builder.document, start, text, data);\n  extend(element, pick(builder, 'mutator', 'type'));\n  return element;\n}\n\nfunction regexpGeneratorFactory(regexp, factory) {\n  return function*(document) {\n\n    let match;\n    if (!regexp.global) {\n      if ((match = regexp.exec(document.text)) !== null) {\n        yield factory(document, match);\n      }\n\n      return;\n    }\n\n    let index;\n    while ((match = regexp.exec(document.text)) !== null) {\n      if (match.index === index) {\n        throw new Error('Parser must not match the same text twice (at index ' + index + ')');\n      }\n\n      index = match.index;\n      yield factory(document, match);\n    }\n  };\n}\n",
     "static": true,
     "longname": "src/parser-builder.js",
     "access": null,
@@ -2168,7 +2196,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 71,
+    "__docId__": 72,
     "kind": "class",
     "name": "ParserBuilder",
     "memberof": "src/parser-builder.js",
@@ -2186,7 +2214,7 @@
     "interface": false
   },
   {
-    "__docId__": 72,
+    "__docId__": 73,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2221,7 +2249,7 @@
     ]
   },
   {
-    "__docId__": 73,
+    "__docId__": 74,
     "kind": "member",
     "name": "document",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2240,7 +2268,7 @@
     }
   },
   {
-    "__docId__": 74,
+    "__docId__": 75,
     "kind": "member",
     "name": "type",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2259,7 +2287,7 @@
     }
   },
   {
-    "__docId__": 75,
+    "__docId__": 76,
     "kind": "method",
     "name": "regexp",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2298,7 +2326,7 @@
     }
   },
   {
-    "__docId__": 76,
+    "__docId__": 77,
     "kind": "member",
     "name": "generator",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2314,7 +2342,7 @@
     }
   },
   {
-    "__docId__": 77,
+    "__docId__": 78,
     "kind": "method",
     "name": "elementType",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2353,7 +2381,7 @@
     }
   },
   {
-    "__docId__": 78,
+    "__docId__": 79,
     "kind": "member",
     "name": "type",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2376,7 +2404,7 @@
     }
   },
   {
-    "__docId__": 79,
+    "__docId__": 80,
     "kind": "method",
     "name": "initialize",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2415,7 +2443,7 @@
     }
   },
   {
-    "__docId__": 80,
+    "__docId__": 81,
     "kind": "member",
     "name": "initializer",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2431,7 +2459,7 @@
     }
   },
   {
-    "__docId__": 81,
+    "__docId__": 82,
     "kind": "method",
     "name": "mutate",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2470,7 +2498,7 @@
     }
   },
   {
-    "__docId__": 82,
+    "__docId__": 83,
     "kind": "member",
     "name": "mutator",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2486,7 +2514,7 @@
     }
   },
   {
-    "__docId__": 83,
+    "__docId__": 84,
     "kind": "method",
     "name": "add",
     "memberof": "src/parser-builder.js~ParserBuilder",
@@ -2514,7 +2542,7 @@
     }
   },
   {
-    "__docId__": 84,
+    "__docId__": 85,
     "kind": "function",
     "name": "createElement",
     "memberof": "src/parser-builder.js",
@@ -2568,7 +2596,7 @@
     }
   },
   {
-    "__docId__": 85,
+    "__docId__": 86,
     "kind": "function",
     "name": "regexpGeneratorFactory",
     "memberof": "src/parser-builder.js",
@@ -2581,7 +2609,7 @@
     "importPath": "mutxtor/src/parser-builder.js",
     "importStyle": null,
     "description": null,
-    "lineNumber": 129,
+    "lineNumber": 130,
     "undocument": true,
     "unknown": [
       {
@@ -2610,7 +2638,854 @@
     }
   },
   {
-    "__docId__": 86,
+    "__docId__": 87,
+    "kind": "file",
+    "name": "src/query.js",
+    "content": "import { constant, every, isFunction, isPlainObject, matches, matchesProperty, some } from 'lodash';\n\nconst ASC = Symbol('asc');\nconst DESC = Symbol('desc');\nconst NONE = Symbol('none');\n\n/**\n * A configurable query to find {@link TextElement} objects in a {@link TextDocument},\n * similar in principle to a database query.\n *\n * Use {@link TextDocument#query} to start a query on a document, then {@link TextQuery#first} or {@link TextQuery#all} to execute the query.\n */\nexport default class TextQuery {\n\n  /**\n   * Constructs a query for the specified document.\n   *\n   * @param {TextDocument} document - The document to run the query on.\n   */\n  constructor(document) {\n    /**\n     * @access private\n     */\n    this.document = document;\n    /**\n     * @access private\n     */\n    this.predicates = [];\n    /**\n     * @access private\n     */\n    this.untilPredicates = [];\n    /**\n     * @access private\n     */\n    this.direction = NONE;\n  }\n\n  /**\n   * Adds a predicate that text elements must match to fulfill the query.\n   *\n   * The predicate may be in three forms:\n   *\n   * 1. `where(String, String)` - Only elements with a matching property/value pair will match, e.g. `where(\"type\", \"foo\")`.\n   * 2. `where(Object)` - Only elements that match all properties and values in the object will match, e.g. `where({ foo: \"bar\", baz: \"qux\" })`.\n   * 3. `where(Function)` - Only elements for which the predicate returns true will match, e.g. `where((e) => e.looksGood)`.\n   *\n   * @param {String|Object|Function} args - A predicate which elements must match.\n   * @returns {TextQuery} This query.\n   */\n  where(...args) {\n    this.predicates.push(makePredicate(...args));\n    return this;\n  }\n\n  /**\n   * Adds a predicate that will interrupt the query as soon as an element matches, and return the previously matching elements up until that point.\n   *\n   * The predicate may be in three forms:\n   *\n   * 1. `where(String, String)` - Only elements with a matching property/value pair will match, e.g. `where(\"type\", \"foo\")`.\n   * 2. `where(Object)` - Only elements that match all properties and values in the object will match, e.g. `where({ foo: \"bar\", baz: \"qux\" })`.\n   * 3. `where(Function)` - Only elements for which the predicate returns true will match, e.g. `where((e) => e.looksGood)`.\n   *\n   * @param {String|Object|Function} args - A predicate which will interrupt the query when a matching element is found.\n   * @returns {TextQuery} This query.\n   */\n  until(...args) {\n    this.untilPredicates.push(makePredicate(...args));\n    return this;\n  }\n\n  /**\n   * Only look for elements after the specified element.\n   *\n   * @param {TextElement} element - The boundary element.\n   * @return {TextQuery} This query.\n   */\n  after(element) {\n    /**\n     * @access private\n     */\n    this.afterIndex = indexOfElement(this, element);\n    return this;\n  }\n\n  /**\n   * Only look for elements before the specified element.\n   *\n   * @param {TextElement} element - The boundary element.\n   * @return {TextQuery} This query.\n   */\n  before(element) {\n    /**\n     * @access private\n     */\n    this.beforeIndex = indexOfElement(this, element);\n    return this;\n  }\n\n  /**\n   * Looks for elements before and after the specified element.\n   *\n   * This will search backward and forward from the boundary element,\n   * and can be combined with {@link TextQuery#until} to easily find\n   * surrounding elements.\n   *\n   * This cannot be combined with {@link TextQuery#ascending} or {@link TextQuery#descending}.\n   *\n   * @param {TextElement} element - The boundary element.\n   * @returns {TextQuery} This query.\n   */\n  around(element) {\n    if (this.direction != NONE) {\n      throw new Error('Text query around an element cannot be used with #ascending or #descending');\n    }\n\n    /**\n     * @access private\n     */\n    this.aroundIndex = indexOfElement(this, element);\n    return this;\n  }\n\n  /**\n   * Look for elements in ascending order (from the beginning to the end of the text).\n   * This is the default behavior.\n   *\n   * @returns {TextQuery} This query.\n   */\n  ascending() {\n    this.direction = ASC;\n    return this;\n  }\n\n  /**\n   * Look for elements in descending order (from the end to the beginning of the text).\n   *\n   * @returns {TextQuery} This query.\n   */\n  descending() {\n    this.direction = DESC;\n    return this;\n  }\n\n  /**\n   * Executes the query and returns only the first matching element.\n   *\n   * @returns {TextElement|undefined} The first matching element, or undefined if none was found.\n   */\n  first() {\n    return execute(this, false);\n  }\n\n  /**\n   * Executes the query and returns all matching elements.\n   *\n   * If the query is made in descending order, the result array will contain the elements in reverse order compared to their position in the text.\n   *\n   * @returns {Array<TextElement>} An array of the matching elements.\n   */\n  all() {\n    if (this.aroundIndex !== undefined && this.direction != NONE) {\n      throw new Error('A text query for all elements around an element cannot be ascending or descending; use #first or do not specify an order');\n    }\n\n    return execute(this, true);\n  }\n}\n\nfunction indexOfElement(query, element) {\n\n  const index = query.document.elements.indexOf(element);\n  if (index < 0) {\n    throw new Error(`Element ${element} is not in document`);\n  }\n\n  return index;\n}\n\nfunction execute(query, multiple) {\n\n  const elements = query.document.elements;\n  if (!elements.length) {\n    return options.multiple ? [] : undefined;\n  }\n\n  const matchingElements = [];\n  if (query.aroundIndex !== undefined) {\n    collect(query, query.aroundIndex + 1, elements.length - 1, multiple, matchingElements);\n    collect(query, query.aroundIndex - 1, 0, multiple, matchingElements);\n  } else {\n    let start = query.afterIndex !== undefined ? query.afterIndex + 1 : 0;\n    let end = query.beforeIndex !== undefined ? query.beforeIndex - 1 : elements.length - 1;\n\n    if (query.direction == DESC) {\n      const tmp = start;\n      start = end;\n      end = start;\n    }\n\n    collect(query, start, end, multiple, matchingElements);\n  }\n\n  matchingElements.sort((a, b) => query.direction != DESC ? a.start - b.start : b.start - a.start);\n\n  return multiple ? matchingElements : matchingElements[0];\n}\n\nfunction collect(query, start, end, multiple, matchingElements) {\n\n  const elements = query.document.elements;\n  const increment = (end - start) / Math.abs(end - start);\n\n  let index = start;\n  while (increment > 0 ? index <= end : index >= end) {\n\n    let e = elements[index];\n    if (anyPredicateMatches(query.untilPredicates, e)) {\n      break;\n    }\n\n    if (allPredicatesMatch(query.predicates, e)) {\n      matchingElements.push(e);\n      if (!multiple) {\n        break;\n      }\n    }\n\n    index += increment;\n  }\n}\n\nfunction allPredicatesMatch(predicates, element) {\n  return every(predicates, (predicate) => predicate(element));\n}\n\nfunction anyPredicateMatches(predicates, element) {\n  return some(predicates, (predicate) => predicate(element));\n}\n\nfunction makePredicate(...args) {\n  if (args.length == 2) {\n    return matchesProperty(args[0], args[1]);\n  } else if (args.length == 1 && isPlainObject(args[0])) {\n    return matches(args[0]);\n  } else if (args.length == 1 && isFunction(args[0])) {\n    return args[0];\n  } else {\n    throw new Error('Unsupported predicate');\n  }\n}\n",
+    "static": true,
+    "longname": "src/query.js",
+    "access": null,
+    "description": null,
+    "lineNumber": 1
+  },
+  {
+    "__docId__": 88,
+    "kind": "variable",
+    "name": "ASC",
+    "memberof": "src/query.js",
+    "static": true,
+    "longname": "src/query.js~ASC",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 3,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 89,
+    "kind": "variable",
+    "name": "DESC",
+    "memberof": "src/query.js",
+    "static": true,
+    "longname": "src/query.js~DESC",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 4,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 90,
+    "kind": "variable",
+    "name": "NONE",
+    "memberof": "src/query.js",
+    "static": true,
+    "longname": "src/query.js~NONE",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 5,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 91,
+    "kind": "class",
+    "name": "TextQuery",
+    "memberof": "src/query.js",
+    "static": true,
+    "longname": "src/query.js~TextQuery",
+    "access": null,
+    "export": true,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": "TextQuery",
+    "description": "A configurable query to find {@link TextElement} objects in a {@link TextDocument},\nsimilar in principle to a database query.\n\nUse {@link TextDocument#query} to start a query on a document, then {@link TextQuery#first} or {@link TextQuery#all} to execute the query.",
+    "lineNumber": 13,
+    "interface": false
+  },
+  {
+    "__docId__": 92,
+    "kind": "constructor",
+    "name": "constructor",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#constructor",
+    "access": null,
+    "description": "Constructs a query for the specified document.",
+    "lineNumber": 20,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "TextDocument"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "document",
+        "description": "The document to run the query on."
+      }
+    ]
+  },
+  {
+    "__docId__": 93,
+    "kind": "member",
+    "name": "document",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#document",
+    "access": "private",
+    "description": "",
+    "lineNumber": 24,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 94,
+    "kind": "member",
+    "name": "predicates",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#predicates",
+    "access": "private",
+    "description": "",
+    "lineNumber": 28,
+    "type": {
+      "types": [
+        "*[]"
+      ]
+    }
+  },
+  {
+    "__docId__": 95,
+    "kind": "member",
+    "name": "untilPredicates",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#untilPredicates",
+    "access": "private",
+    "description": "",
+    "lineNumber": 32,
+    "type": {
+      "types": [
+        "*[]"
+      ]
+    }
+  },
+  {
+    "__docId__": 96,
+    "kind": "member",
+    "name": "direction",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#direction",
+    "access": "private",
+    "description": "",
+    "lineNumber": 36,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 97,
+    "kind": "method",
+    "name": "where",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#where",
+    "access": null,
+    "description": "Adds a predicate that text elements must match to fulfill the query.\n\nThe predicate may be in three forms:\n\n1. `where(String, String)` - Only elements with a matching property/value pair will match, e.g. `where(\"type\", \"foo\")`.\n2. `where(Object)` - Only elements that match all properties and values in the object will match, e.g. `where({ foo: \"bar\", baz: \"qux\" })`.\n3. `where(Function)` - Only elements for which the predicate returns true will match, e.g. `where((e) => e.looksGood)`.",
+    "lineNumber": 51,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} This query."
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String",
+          "Object",
+          "Function"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args",
+        "description": "A predicate which elements must match."
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 98,
+    "kind": "method",
+    "name": "until",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#until",
+    "access": null,
+    "description": "Adds a predicate that will interrupt the query as soon as an element matches, and return the previously matching elements up until that point.\n\nThe predicate may be in three forms:\n\n1. `where(String, String)` - Only elements with a matching property/value pair will match, e.g. `where(\"type\", \"foo\")`.\n2. `where(Object)` - Only elements that match all properties and values in the object will match, e.g. `where({ foo: \"bar\", baz: \"qux\" })`.\n3. `where(Function)` - Only elements for which the predicate returns true will match, e.g. `where((e) => e.looksGood)`.",
+    "lineNumber": 68,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} This query."
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "String",
+          "Object",
+          "Function"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "args",
+        "description": "A predicate which will interrupt the query when a matching element is found."
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 99,
+    "kind": "method",
+    "name": "after",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#after",
+    "access": null,
+    "description": "Only look for elements after the specified element.",
+    "lineNumber": 79,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "TextElement"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "element",
+        "description": "The boundary element."
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 100,
+    "kind": "member",
+    "name": "afterIndex",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#afterIndex",
+    "access": "private",
+    "description": "",
+    "lineNumber": 83,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 101,
+    "kind": "method",
+    "name": "before",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#before",
+    "access": null,
+    "description": "Only look for elements before the specified element.",
+    "lineNumber": 93,
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "TextElement"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "element",
+        "description": "The boundary element."
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 102,
+    "kind": "member",
+    "name": "beforeIndex",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#beforeIndex",
+    "access": "private",
+    "description": "",
+    "lineNumber": 97,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 103,
+    "kind": "method",
+    "name": "around",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#around",
+    "access": null,
+    "description": "Looks for elements before and after the specified element.\n\nThis will search backward and forward from the boundary element,\nand can be combined with {@link TextQuery#until} to easily find\nsurrounding elements.\n\nThis cannot be combined with {@link TextQuery#ascending} or {@link TextQuery#descending}.",
+    "lineNumber": 113,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} This query."
+      }
+    ],
+    "params": [
+      {
+        "nullable": null,
+        "types": [
+          "TextElement"
+        ],
+        "spread": false,
+        "optional": false,
+        "name": "element",
+        "description": "The boundary element."
+      }
+    ],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 104,
+    "kind": "member",
+    "name": "aroundIndex",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#aroundIndex",
+    "access": "private",
+    "description": "",
+    "lineNumber": 121,
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 105,
+    "kind": "method",
+    "name": "ascending",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#ascending",
+    "access": null,
+    "description": "Look for elements in ascending order (from the beginning to the end of the text).\nThis is the default behavior.",
+    "lineNumber": 131,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} This query."
+      }
+    ],
+    "params": [],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 106,
+    "kind": "member",
+    "name": "direction",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#direction",
+    "access": null,
+    "description": null,
+    "lineNumber": 132,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 107,
+    "kind": "method",
+    "name": "descending",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#descending",
+    "access": null,
+    "description": "Look for elements in descending order (from the end to the beginning of the text).",
+    "lineNumber": 141,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextQuery} This query."
+      }
+    ],
+    "params": [],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextQuery"
+      ],
+      "spread": false,
+      "description": "This query."
+    }
+  },
+  {
+    "__docId__": 108,
+    "kind": "member",
+    "name": "direction",
+    "memberof": "src/query.js~TextQuery",
+    "static": false,
+    "longname": "src/query.js~TextQuery#direction",
+    "access": null,
+    "description": null,
+    "lineNumber": 142,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "type": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 109,
+    "kind": "method",
+    "name": "first",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#first",
+    "access": null,
+    "description": "Executes the query and returns only the first matching element.",
+    "lineNumber": 151,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{TextElement|undefined} The first matching element, or undefined if none was found."
+      }
+    ],
+    "params": [],
+    "return": {
+      "nullable": null,
+      "types": [
+        "TextElement",
+        "undefined"
+      ],
+      "spread": false,
+      "description": "The first matching element, or undefined if none was found."
+    }
+  },
+  {
+    "__docId__": 110,
+    "kind": "method",
+    "name": "all",
+    "memberof": "src/query.js~TextQuery",
+    "generator": false,
+    "async": false,
+    "static": false,
+    "longname": "src/query.js~TextQuery#all",
+    "access": null,
+    "description": "Executes the query and returns all matching elements.\n\nIf the query is made in descending order, the result array will contain the elements in reverse order compared to their position in the text.",
+    "lineNumber": 162,
+    "unknown": [
+      {
+        "tagName": "@returns",
+        "tagValue": "{Array<TextElement>} An array of the matching elements."
+      }
+    ],
+    "params": [],
+    "return": {
+      "nullable": null,
+      "types": [
+        "Array<TextElement>"
+      ],
+      "spread": false,
+      "description": "An array of the matching elements."
+    }
+  },
+  {
+    "__docId__": 111,
+    "kind": "function",
+    "name": "indexOfElement",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~indexOfElement",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 171,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "element",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 112,
+    "kind": "function",
+    "name": "execute",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~execute",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 181,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "multiple",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 113,
+    "kind": "function",
+    "name": "collect",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~collect",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 210,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "query",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "start",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "end",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "multiple",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "matchingElements",
+        "types": [
+          "*"
+        ]
+      }
+    ]
+  },
+  {
+    "__docId__": 114,
+    "kind": "function",
+    "name": "allPredicatesMatch",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~allPredicatesMatch",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 234,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "predicates",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "element",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 115,
+    "kind": "function",
+    "name": "anyPredicateMatches",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~anyPredicateMatches",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 238,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "predicates",
+        "types": [
+          "*"
+        ]
+      },
+      {
+        "name": "element",
+        "types": [
+          "*"
+        ]
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 116,
+    "kind": "function",
+    "name": "makePredicate",
+    "memberof": "src/query.js",
+    "generator": false,
+    "async": false,
+    "static": true,
+    "longname": "src/query.js~makePredicate",
+    "access": null,
+    "export": false,
+    "importPath": "mutxtor/src/query.js",
+    "importStyle": null,
+    "description": null,
+    "lineNumber": 242,
+    "undocument": true,
+    "unknown": [
+      {
+        "tagName": "@_undocument",
+        "tagValue": ""
+      }
+    ],
+    "params": [
+      {
+        "name": "args",
+        "types": [
+          "...*"
+        ],
+        "spread": true
+      }
+    ],
+    "return": {
+      "types": [
+        "*"
+      ]
+    }
+  },
+  {
+    "__docId__": 117,
     "kind": "file",
     "name": "src/range.js",
     "content": "import { isInteger } from 'lodash';\n\n/**\n * A range of text, defined by a start and end indices.\n */\nexport default class TextRange {\n\n  /**\n   * Creates a new text range.\n   *\n   * @param {integer} start - The start index (inclusive) of this range.\n   * @param {integer} end - The end index (exclusive) of this range.\n   */\n  constructor(start, end) {\n    if (!isInteger(start) || start < 0) {\n      throw new Error('Text range start must be an integer greater than or equal to 0; got ' + JSON.stringify(start) + ' (' + typeof(start) + ')');\n    } else if (!isInteger(end) || end < 1) {\n      throw new Error('Text range end must be an integer greater than or equal to 1; got ' + JSON.stringify(end) + ' (' + typeof(end) + ')');\n    } else if (end <= start) {\n      throw new Error('Text range end must be greater than start; got ' + end + ' (start is ' + start + ')');\n    }\n\n    /**\n     * The start index (inclusive) of this range.\n     * @type {integer}\n     */\n    this.start = start;\n\n    /**\n     * The end index (exclusive) of this range.\n     * @type {integer}\n     */\n    this.end = end;\n  }\n\n  /**\n   * Indicates whether the specified range overlaps with this one.\n   *\n   * @param {TextRange} range - The range to check.\n   * @returns {boolean} True if the specified range overlaps with this one, false otherwise.\n   */\n  overlaps(range) {\n    if (!(range instanceof TextRange)) {\n      throw new Error('Range must be an instance of TextRange');\n    }\n\n    const start = range.start;\n    const end = range.end;\n\n    // Check the specified range...\n    return (start >= this.start && start < this.end) || // It starts within this range.\n      (end > start && end <= this.end) ||               // It ends within this range.\n      (start <= this.start && end >= this.end);         // It is around this range.\n  }\n\n  /**\n   * Moves this range by the specified number of characters.\n   *\n   * @param {integer} delta - The value to add or remove to this range's start and end indices.\n   * @returns {TextRange} This range.\n   */\n  moveBy(delta) {\n    if (!isInteger(delta)) {\n      throw new Error('Delta must be an integer; got ' + JSON.stringify(delta) + ' (' + typeof(delta) + ')');\n    } else if (this.start + delta < 0) {\n      throw new Error('Delta cannot move the start index of this range below 0 (current start index is ' + this.start + ')');\n    }\n\n    this.start += delta;\n    this.end += delta;\n\n    return this;\n  }\n\n  /**\n   * Returns the contents of this range within the specified text.\n   *\n   * @param {string} text - The text from which to extract this range.\n   * @returns {string} This range's text.\n   */\n  extractFromText(text) {\n    if (!this.isInText(text)) {\n      throw new Error('Text range ' + this.start + '-' + this.end + ' is not in text (total length is ' + text.length + ')');\n    }\n\n    return text.slice(this.start, this.end);\n  }\n\n  /**\n   * Indicates whether this range exists within the specified text.\n   *\n   * @param {string} text - The text in which to check.\n   * @returns {boolean} True if this range fits within the bounds of the text, false otherwise.\n   */\n  isInText(text) {\n    return this.start <= text.length - 1 && this.end <= text.length;\n  }\n\n}\n",
@@ -2621,7 +3496,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 87,
+    "__docId__": 118,
     "kind": "class",
     "name": "TextRange",
     "memberof": "src/range.js",
@@ -2636,7 +3511,7 @@
     "interface": false
   },
   {
-    "__docId__": 88,
+    "__docId__": 119,
     "kind": "constructor",
     "name": "constructor",
     "memberof": "src/range.js~TextRange",
@@ -2671,7 +3546,7 @@
     ]
   },
   {
-    "__docId__": 89,
+    "__docId__": 120,
     "kind": "member",
     "name": "start",
     "memberof": "src/range.js~TextRange",
@@ -2690,7 +3565,7 @@
     }
   },
   {
-    "__docId__": 90,
+    "__docId__": 121,
     "kind": "member",
     "name": "end",
     "memberof": "src/range.js~TextRange",
@@ -2709,7 +3584,7 @@
     }
   },
   {
-    "__docId__": 91,
+    "__docId__": 122,
     "kind": "method",
     "name": "overlaps",
     "memberof": "src/range.js~TextRange",
@@ -2748,7 +3623,7 @@
     }
   },
   {
-    "__docId__": 92,
+    "__docId__": 123,
     "kind": "method",
     "name": "moveBy",
     "memberof": "src/range.js~TextRange",
@@ -2787,7 +3662,7 @@
     }
   },
   {
-    "__docId__": 93,
+    "__docId__": 124,
     "kind": "member",
     "name": "start",
     "memberof": "src/range.js~TextRange",
@@ -2810,7 +3685,7 @@
     }
   },
   {
-    "__docId__": 94,
+    "__docId__": 125,
     "kind": "member",
     "name": "end",
     "memberof": "src/range.js~TextRange",
@@ -2833,7 +3708,7 @@
     }
   },
   {
-    "__docId__": 95,
+    "__docId__": 126,
     "kind": "method",
     "name": "extractFromText",
     "memberof": "src/range.js~TextRange",
@@ -2872,7 +3747,7 @@
     }
   },
   {
-    "__docId__": 96,
+    "__docId__": 127,
     "kind": "method",
     "name": "isInText",
     "memberof": "src/range.js~TextRange",
@@ -2911,7 +3786,7 @@
     }
   },
   {
-    "__docId__": 97,
+    "__docId__": 128,
     "kind": "file",
     "name": "src/utils.js",
     "content": "import { pick } from 'lodash';\n\n/**\n * @access private\n */\nexport function stringify(object, ...properties) {\n  return object.constructor.name + '{' + JSON.stringify(pick(object, properties)) + '}';\n}\n",
@@ -2922,7 +3797,7 @@
     "lineNumber": 1
   },
   {
-    "__docId__": 98,
+    "__docId__": 129,
     "kind": "function",
     "name": "stringify",
     "memberof": "src/utils.js",
@@ -2958,7 +3833,7 @@
     }
   },
   {
-    "__docId__": 100,
+    "__docId__": 131,
     "kind": "external",
     "name": "Infinity",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Infinity",
@@ -2970,7 +3845,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 101,
+    "__docId__": 132,
     "kind": "external",
     "name": "NaN",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/NaN",
@@ -2982,7 +3857,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 102,
+    "__docId__": 133,
     "kind": "external",
     "name": "undefined",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined",
@@ -2994,7 +3869,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 103,
+    "__docId__": 134,
     "kind": "external",
     "name": "null",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null",
@@ -3006,7 +3881,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 104,
+    "__docId__": 135,
     "kind": "external",
     "name": "Object",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
@@ -3018,7 +3893,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 105,
+    "__docId__": 136,
     "kind": "external",
     "name": "object",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object",
@@ -3030,7 +3905,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 106,
+    "__docId__": 137,
     "kind": "external",
     "name": "Function",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
@@ -3042,7 +3917,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 107,
+    "__docId__": 138,
     "kind": "external",
     "name": "function",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function",
@@ -3054,7 +3929,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 108,
+    "__docId__": 139,
     "kind": "external",
     "name": "Boolean",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
@@ -3066,7 +3941,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 109,
+    "__docId__": 140,
     "kind": "external",
     "name": "boolean",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Boolean",
@@ -3078,7 +3953,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 110,
+    "__docId__": 141,
     "kind": "external",
     "name": "Symbol",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol",
@@ -3090,7 +3965,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 111,
+    "__docId__": 142,
     "kind": "external",
     "name": "Error",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error",
@@ -3102,7 +3977,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 112,
+    "__docId__": 143,
     "kind": "external",
     "name": "EvalError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/EvalError",
@@ -3114,7 +3989,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 113,
+    "__docId__": 144,
     "kind": "external",
     "name": "InternalError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/InternalError",
@@ -3126,7 +4001,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 114,
+    "__docId__": 145,
     "kind": "external",
     "name": "RangeError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RangeError",
@@ -3138,7 +4013,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 115,
+    "__docId__": 146,
     "kind": "external",
     "name": "ReferenceError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ReferenceError",
@@ -3150,7 +4025,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 116,
+    "__docId__": 147,
     "kind": "external",
     "name": "SyntaxError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SyntaxError",
@@ -3162,7 +4037,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 117,
+    "__docId__": 148,
     "kind": "external",
     "name": "TypeError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypeError",
@@ -3174,7 +4049,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 118,
+    "__docId__": 149,
     "kind": "external",
     "name": "URIError",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/URIError",
@@ -3186,7 +4061,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 119,
+    "__docId__": 150,
     "kind": "external",
     "name": "Number",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
@@ -3198,7 +4073,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 120,
+    "__docId__": 151,
     "kind": "external",
     "name": "number",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number",
@@ -3210,7 +4085,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 121,
+    "__docId__": 152,
     "kind": "external",
     "name": "Date",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date",
@@ -3222,7 +4097,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 122,
+    "__docId__": 153,
     "kind": "external",
     "name": "String",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
@@ -3234,7 +4109,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 123,
+    "__docId__": 154,
     "kind": "external",
     "name": "string",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String",
@@ -3246,7 +4121,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 124,
+    "__docId__": 155,
     "kind": "external",
     "name": "RegExp",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp",
@@ -3258,7 +4133,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 125,
+    "__docId__": 156,
     "kind": "external",
     "name": "Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array",
@@ -3270,7 +4145,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 126,
+    "__docId__": 157,
     "kind": "external",
     "name": "Int8Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int8Array",
@@ -3282,7 +4157,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 127,
+    "__docId__": 158,
     "kind": "external",
     "name": "Uint8Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array",
@@ -3294,7 +4169,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 128,
+    "__docId__": 159,
     "kind": "external",
     "name": "Uint8ClampedArray",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8ClampedArray",
@@ -3306,7 +4181,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 129,
+    "__docId__": 160,
     "kind": "external",
     "name": "Int16Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int16Array",
@@ -3318,7 +4193,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 130,
+    "__docId__": 161,
     "kind": "external",
     "name": "Uint16Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint16Array",
@@ -3330,7 +4205,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 131,
+    "__docId__": 162,
     "kind": "external",
     "name": "Int32Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Int32Array",
@@ -3342,7 +4217,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 132,
+    "__docId__": 163,
     "kind": "external",
     "name": "Uint32Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint32Array",
@@ -3354,7 +4229,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 133,
+    "__docId__": 164,
     "kind": "external",
     "name": "Float32Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float32Array",
@@ -3366,7 +4241,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 134,
+    "__docId__": 165,
     "kind": "external",
     "name": "Float64Array",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float64Array",
@@ -3378,7 +4253,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 135,
+    "__docId__": 166,
     "kind": "external",
     "name": "Map",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map",
@@ -3390,7 +4265,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 136,
+    "__docId__": 167,
     "kind": "external",
     "name": "Set",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set",
@@ -3402,7 +4277,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 137,
+    "__docId__": 168,
     "kind": "external",
     "name": "WeakMap",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap",
@@ -3414,7 +4289,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 138,
+    "__docId__": 169,
     "kind": "external",
     "name": "WeakSet",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet",
@@ -3426,7 +4301,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 139,
+    "__docId__": 170,
     "kind": "external",
     "name": "ArrayBuffer",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer",
@@ -3438,7 +4313,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 140,
+    "__docId__": 171,
     "kind": "external",
     "name": "DataView",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView",
@@ -3450,7 +4325,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 141,
+    "__docId__": 172,
     "kind": "external",
     "name": "JSON",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON",
@@ -3462,7 +4337,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 142,
+    "__docId__": 173,
     "kind": "external",
     "name": "Promise",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise",
@@ -3474,7 +4349,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 143,
+    "__docId__": 174,
     "kind": "external",
     "name": "Generator",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator",
@@ -3486,7 +4361,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 144,
+    "__docId__": 175,
     "kind": "external",
     "name": "GeneratorFunction",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/GeneratorFunction",
@@ -3498,7 +4373,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 145,
+    "__docId__": 176,
     "kind": "external",
     "name": "Reflect",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect",
@@ -3510,7 +4385,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 146,
+    "__docId__": 177,
     "kind": "external",
     "name": "Proxy",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy",
@@ -3523,7 +4398,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 148,
+    "__docId__": 179,
     "kind": "external",
     "name": "CanvasRenderingContext2D",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D",
@@ -3535,7 +4410,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 149,
+    "__docId__": 180,
     "kind": "external",
     "name": "DocumentFragment",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/DocumentFragment",
@@ -3547,7 +4422,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 150,
+    "__docId__": 181,
     "kind": "external",
     "name": "Element",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Element",
@@ -3559,7 +4434,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 151,
+    "__docId__": 182,
     "kind": "external",
     "name": "Event",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Event",
@@ -3571,7 +4446,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 152,
+    "__docId__": 183,
     "kind": "external",
     "name": "Node",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/Node",
@@ -3583,7 +4458,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 153,
+    "__docId__": 184,
     "kind": "external",
     "name": "NodeList",
     "externalLink": "https://developer.mozilla.org/en-US/docs/Web/API/NodeList",
@@ -3595,7 +4470,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 154,
+    "__docId__": 185,
     "kind": "external",
     "name": "XMLHttpRequest",
     "externalLink": "https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest",
@@ -3607,7 +4482,7 @@
     "builtinExternal": true
   },
   {
-    "__docId__": 155,
+    "__docId__": 186,
     "kind": "external",
     "name": "AudioContext",
     "externalLink": "https://developer.mozilla.org/en/docs/Web/API/AudioContext",

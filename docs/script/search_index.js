@@ -36,6 +36,12 @@ window.esdocSearchIndex = [
     "class"
   ],
   [
+    "mutxtor/src/query.js~textquery",
+    "class/src/query.js~TextQuery.html",
+    "<span>TextQuery</span> <span class=\"search-result-import-path\">mutxtor/src/query.js</span>",
+    "class"
+  ],
+  [
     "mutxtor/src/range.js~textrange",
     "class/src/range.js~TextRange.html",
     "<span>TextRange</span> <span class=\"search-result-import-path\">mutxtor/src/range.js</span>",
@@ -462,6 +468,12 @@ window.esdocSearchIndex = [
     "method"
   ],
   [
+    "src/document.js~textdocument#query",
+    "class/src/document.js~TextDocument.html#instance-method-query",
+    "src/document.js~TextDocument#query",
+    "method"
+  ],
+  [
     "src/document.js~textdocument#remove",
     "class/src/document.js~TextDocument.html#instance-method-remove",
     "src/document.js~TextDocument#remove",
@@ -772,6 +784,72 @@ window.esdocSearchIndex = [
     "class/src/parser-builder.js~ParserBuilder.html#instance-member-type",
     "src/parser-builder.js~ParserBuilder#type",
     "member"
+  ],
+  [
+    "src/query.js",
+    "file/src/query.js.html",
+    "src/query.js",
+    "file"
+  ],
+  [
+    "src/query.js~textquery#after",
+    "class/src/query.js~TextQuery.html#instance-method-after",
+    "src/query.js~TextQuery#after",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#all",
+    "class/src/query.js~TextQuery.html#instance-method-all",
+    "src/query.js~TextQuery#all",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#around",
+    "class/src/query.js~TextQuery.html#instance-method-around",
+    "src/query.js~TextQuery#around",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#ascending",
+    "class/src/query.js~TextQuery.html#instance-method-ascending",
+    "src/query.js~TextQuery#ascending",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#before",
+    "class/src/query.js~TextQuery.html#instance-method-before",
+    "src/query.js~TextQuery#before",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#constructor",
+    "class/src/query.js~TextQuery.html#instance-constructor-constructor",
+    "src/query.js~TextQuery#constructor",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#descending",
+    "class/src/query.js~TextQuery.html#instance-method-descending",
+    "src/query.js~TextQuery#descending",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#first",
+    "class/src/query.js~TextQuery.html#instance-method-first",
+    "src/query.js~TextQuery#first",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#until",
+    "class/src/query.js~TextQuery.html#instance-method-until",
+    "src/query.js~TextQuery#until",
+    "method"
+  ],
+  [
+    "src/query.js~textquery#where",
+    "class/src/query.js~TextQuery.html#instance-method-where",
+    "src/query.js~TextQuery#where",
+    "method"
   ],
   [
     "src/range.js",
