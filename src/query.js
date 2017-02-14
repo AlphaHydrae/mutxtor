@@ -114,7 +114,7 @@ function anyPredicateMatches(predicates, element) {
 function makePredicate(...args) {
   if (args.length == 2) {
     return matchesProperty(args[0], args[1]);
-  } else if (args.length == 1 && isObject(args[0])) {
+  } else if (args.length == 1 && isPlainObject(args[0])) {
     return matches(args[0]);
   } else if (args.length == 1 && isFunction(args[0])) {
     return args[0];
