@@ -212,6 +212,10 @@ function collect(query, start, end, multiple, matchingElements) {
   const elements = query.document.elements;
   const increment = (end - start) / Math.abs(end - start);
 
+  if (start < 0 || start >= elements.length) {
+    return;
+  }
+
   let index = start;
   while (increment > 0 ? index <= end : index >= end) {
 
