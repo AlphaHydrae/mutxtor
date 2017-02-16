@@ -199,7 +199,9 @@ function execute(query, multiple) {
       end = tmp;
     }
 
-    collect(query, start, end, multiple, matchingElements);
+    if (query.beforeIndex !== 0 && query.afterIndex != elements.length - 1) {
+      collect(query, start, end, multiple, matchingElements);
+    }
   }
 
   matchingElements.sort((a, b) => query.direction != DESC ? a.start - b.start : b.start - a.start);
