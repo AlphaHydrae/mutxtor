@@ -196,7 +196,7 @@ function execute(query, multiple) {
     if (query.direction == DESC) {
       const tmp = start;
       start = end;
-      end = start;
+      end = tmp;
     }
 
     collect(query, start, end, multiple, matchingElements);
