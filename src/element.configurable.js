@@ -39,7 +39,7 @@ export default class ConfigurableTextElement extends TextElement {
   mutate() {
     // TODO: create a setter for the mutator
     if (isFunction(this.mutator)) {
-      this.mutator.call(this, this.data);
+      return this.mutator.call(this, this.data);
     }
   }
 
