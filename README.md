@@ -2,6 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/mutxtor.svg)](https://badge.fury.io/js/mutxtor)
 [![Build Status](https://travis-ci.org/AlphaHydrae/mutxtor.svg?branch=master)](https://travis-ci.org/AlphaHydrae/mutxtor)
+[![Coverage Status](https://coveralls.io/repos/github/AlphaHydrae/mutxtor/badge.svg?branch=master)](https://coveralls.io/github/AlphaHydrae/mutxtor?branch=master)
 
 > Plain text parsing and transformation engine.
 
