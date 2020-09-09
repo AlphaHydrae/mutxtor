@@ -1,4 +1,4 @@
-import polyfills from 'babel-polyfill';
+import 'core-js/stable';
 
 import TextDocument from './document';
 import { TextDocumentStart, TextDocumentEnd } from './document';
