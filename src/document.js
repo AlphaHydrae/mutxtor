@@ -181,7 +181,7 @@ export default class TextDocument extends EventEmitter {
 
     let promise = Promise.resolve();
     each(this.elements.slice(), (element) => promise = promise.then(() => element.mutate()));
-    promise = promise.return(this);
+    promise = promise.then(() => this);
 
     return promise;
   }

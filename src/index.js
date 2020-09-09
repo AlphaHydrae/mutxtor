@@ -1,4 +1,5 @@
 import 'core-js/stable';
+import 'regenerator-runtime/runtime.js';
 
 import TextDocument from './document';
 import { TextDocumentStart, TextDocumentEnd } from './document';
