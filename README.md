@@ -1,7 +1,6 @@
 # Mutxtor
 
 [![npm version](https://badge.fury.io/js/mutxtor.svg)](https://badge.fury.io/js/mutxtor)
-[![Dependency Status](https://gemnasium.com/badges/github.com/AlphaHydrae/mutxtor.svg)](https://gemnasium.com/github.com/AlphaHydrae/mutxtor)
 
 > Plain text parsing and transformation engine.
 
@@ -11,7 +10,7 @@
 
 ## Requirements
 
-* [Node.js][node] 4+
+* [Node.js][node] 14+
 
 
 
@@ -21,7 +20,8 @@
 
 Read the [documentation][docs].
 
-Check out [md2remark][md2remark] and its [implementation][md2remark-src] for an example of what you can do with it.
+Check out [md2remark][md2remark] and its [implementation][md2remark-src] for an
+example of what you can do with it.
 
 
 
