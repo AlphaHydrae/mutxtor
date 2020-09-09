@@ -29,7 +29,7 @@ example of what you can do with it.
 
 
 
-[docs]: docs/
+[docs]: https://alphahydrae.github.io/mutxtor/class/src/document.js~TextDocument.html
 [md2remark]: https://github.com/AlphaHydrae/md2remark
 [md2remark-src]: https://github.com/AlphaHydrae/md2remark/blob/071bfcce6c06f68fbf27fbbcf1801653b34d9d70/src/md2remark.js
 [node]: https://nodejs.org/en/

@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "build": "rimraf lib && npm run src:build",
+    "dev": "concurrently \"npm run docs:serve\" \"npm run docs:watch\" \"npm run src:watch\" \"npm run test:watch\"",
     "docs": "rimraf docs && npm run docs:gen",
     "docs:gen": "esdoc",
     "docs:serve": "node serve-docs.js",
@@ -35,8 +36,8 @@
     "src:lint": "jshint src",
     "src:watch": "onchange \"src/**/*.js\" -- npm run src:build",
     "start": "concurrently \"npm run build\" \"npm run docs\" && npm run watch",
-    "test": "nyc mocha",
-    "watch": "concurrently \"npm run src:watch\" \"npm run docs:serve\" \"npm run docs:watch\""
+    "test": "nyc mocha --forbid-only",
+    "test:watch": "mocha --watch"
   },
   "dependencies": {
     "is-generator": "^1.0.3",
