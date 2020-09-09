@@ -30,7 +30,7 @@
     "docs:serve": "node serve-docs.js",
     "docs:watch": "onchange README.md \"src/**/*.js\" -- npm run docs:gen",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
-    "prepublish": "npm run build",
+    "prepare": "npm run build",
     "src:build": "npm run src:lint && npm run src:compile",
     "src:compile": "babel src -d lib",
     "src:lint": "jshint src",
