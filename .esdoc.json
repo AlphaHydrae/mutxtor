@@ -1,5 +1,9 @@
 {
   "destination": "./docs",
   "source": "./src",
-  "title": "Mutxtor"
+  "plugins": [
+    {
+      "name": "esdoc-standard-plugin"
+    }
+  ]
 }

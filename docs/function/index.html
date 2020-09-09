@@ -2,8 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <base data-ice="baseUrl" href="../../">
-  <title data-ice="title">src/mutation.js | mutxtor</title>
+  <base data-ice="baseUrl" href="../">
+  <title data-ice="title">Function | mutxtor</title>
   <link type="text/css" rel="stylesheet" href="css/style.css">
   <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
   <script src="script/prettify/prettify.js"></script>
@@ -44,78 +44,122 @@
 </div>
 </nav>
 
-<div class="content" data-ice="content"><h1 data-ice="title">src/mutation.js</h1>
-<pre class="source-code line-number raw-source-code"><code class="prettyprint linenums" data-ice="content">/**
- * A change in a text document.
- *
- * This is an abstract class that does nothing.
- * It should be subclasses and its methods overriden.
- */
-export default class TextMutation {
+<div class="content" data-ice="content"><h1 data-ice="title">Function</h1>
+<div data-ice="summaries"><table class="summary" data-ice="summary">
+  <thead><tr><td data-ice="title" colspan="3">Static Private Summary</td></tr></thead>
+  <tbody>
+  
+  <tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">private</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
+          
+          <span class="code" data-ice="name"><span><a href="function/index.html#static-function-stringify">stringify</a></span></span><span class="code" data-ice="signature">(object: <span>*</span>, properties: ...<span>*</span>): <span>*</span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+</tbody>
+</table>
+</div>
+<div data-ice="details"><h2 data-ice="title">Static Private </h2>
 
-  /**
-   * Creates a new text mutation concerning the specified text element.
-   *
-   * @param {TextElement} element - The text element being mutated.
-   */
-  constructor(element) {
-    // TODO: validate
-    /**
-     * The text element being mutated.
-     * @type {TextElement}
-     */
-    this.element = element;
-  }
+<div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="static-function-stringify">
+    <span class="access" data-ice="access">private</span>
+    
+    
+    
+    
+    
+    <span class="code" data-ice="name">stringify</span><span class="code" data-ice="signature">(object: <span>*</span>, properties: ...<span>*</span>): <span>*</span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/utils.js.html#lineNumber6">source</a></span></span>
+    </span>
+  </h3>
 
-  /**
-   * The start index at which this mutation takes place in the text document.
-   *
-   * If the mutation affects an existing range of text, this must be the start index (inclusive) of that range.
-   * If the mutation only adds new text, this must be the index at which that text will be inserted.
-   *
-   * @returns {integer} The index at which this mutation takes place in the text document.
-   */
-  get start() {
-    return undefined;
-  }
+  <div data-ice="importPath" class="import-path"><pre class="prettyprint"><code data-ice="importPathCode">import {stringify} from &apos;<span><a href="file/src/utils.js.html#lineNumber6">mutxtor/src/utils.js</a></span>&apos;</code></pre></div>
+  
+  
+  
 
-  /**
-   * The end index at which this mutation takes place in the text document.
-   *
-   * If the mutation affects an existing range of text, this must be the end index (exclusive) of that range.
-   * If the mutation only adds new text, this must be `undefined`.
-   *
-   * @returns {integer|undefined} The end index (exclusive) of the existing text range affected by this mutation, or `undefined` if the mutation only adds new text.
-   */
-  get end() {
-    return undefined;
-  }
+  
 
-  /**
-   * The positive or negative difference of the total length of the text document after the mutation is applied.
-   *
-   * * If the mutation adds 3 characters, the delta is 3.
-   * * If the mutation adds 5 characters and removes 7, the delta is -2.
-   *
-   * @returns {integer} The number of characters added to or removed from the document by this mutation.
-   */
-  get delta() {
-    return 0;
-  }
+  <div data-ice="properties"><div data-ice="properties">
+  <h4 data-ice="title">Params:</h4>
+  <table class="params">
+    <thead>
+    <tr><td>Name</td><td>Type</td><td>Attribute</td><td>Description</td></tr>
+    </thead>
+    <tbody>
+    
+    <tr data-ice="property" data-depth="0">
+      <td data-ice="name" class="code" data-depth="0">object</td>
+      <td data-ice="type" class="code"><span>*</span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"></td>
+    </tr>
+<tr data-ice="property" data-depth="0">
+      <td data-ice="name" class="code" data-depth="0">properties</td>
+      <td data-ice="type" class="code">...<span>*</span></td>
+      <td data-ice="appendix"></td>
+      <td data-ice="description"></td>
+    </tr>
+</tbody>
+  </table>
+</div>
+</div>
 
-  /**
-   * Applies this mutation to the specified text.
-   *
-   * @param {string} text - The text to change.
-   * @returns {string} The changed text.
-   */
-  apply(text) {
-    return text;
-  }
+  <div class="return-params" data-ice="returnParams">
+    <h4>Return:</h4>
+    <table>
+      <tbody>
+        <tr>
+          <td class="return-type code" data-ice="returnType"><span>*</span></td>
+          
+        </tr>
+      </tbody>
+    </table>
+    <div data-ice="returnProperties">
+</div>
+  </div>
 
-}
-</code></pre>
+  
 
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+</div>
+</div>
 </div>
 
 <footer class="footer">

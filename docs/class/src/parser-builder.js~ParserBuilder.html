@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8">
   <base data-ice="baseUrl" href="../../">
-  <title data-ice="title">ParserBuilder | Mutxtor API Document</title>
+  <title data-ice="title">ParserBuilder | mutxtor</title>
   <link type="text/css" rel="stylesheet" href="css/style.css">
   <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
   <script src="script/prettify/prettify.js"></script>
-  
-  
   <script src="script/manual.js"></script>
-</head>
+<meta name="description" content="Text parser and transformation engine"><meta property="twitter:card" content="summary"><meta property="twitter:title" content="mutxtor"><meta property="twitter:description" content="Text parser and transformation engine"></head>
 <body class="layout-container" data-ice="rootContainer">
 
 <header>
@@ -19,7 +17,6 @@
   <a href="identifiers.html">Reference</a>
   <a href="source.html">Source</a>
   
-  <a data-ice="repoURL" href="https://github.com/AlphaHydrae/mutxtor.git" class="repo-url-github">Repository</a>
   <div class="search-box">
   <span>
     <img src="./image/search.png">
@@ -27,7 +24,7 @@
   </span>
     <ul class="search-result"></ul>
   </div>
-</header>
+<a style="position:relative; top:3px;" href="https://github.com/AlphaHydrae/mutxtor.git"><img width="20px" src="./image/github.png"></a></header>
 
 <nav class="navigation" data-ice="nav"><div>
   <ul>
@@ -40,6 +37,7 @@
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/query.js~TextQuery.html">TextQuery</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/range.js~TextRange.html">TextRange</a></span></span></li>
+<li data-ice="doc"><span data-ice="kind" class="kind-function">F</span><span data-ice="name"><span><a href="function/index.html#static-function-stringify">stringify</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentEnd">TextDocumentEnd</a></span></span></li>
 <li data-ice="doc"><span data-ice="kind" class="kind-variable">V</span><span data-ice="name"><span><a href="variable/index.html#static-variable-TextDocumentStart">TextDocumentStart</a></span></span></li>
 </ul>
@@ -120,7 +118,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-constructor-constructor">constructor</a></span></span><span data-ice="signature">(document: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span>, type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>)</span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-constructor-constructor">constructor</a></span></span><span class="code" data-ice="signature">(document: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span>, type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>)</span>
         </p>
       </div>
       <div>
@@ -155,7 +154,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-document">document</a></span></span><span data-ice="signature">: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-document">document</a></span></span><span class="code" data-ice="signature">: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
         </p>
       </div>
       <div>
@@ -183,7 +183,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-type">type</a></span></span><span data-ice="signature">: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-type">type</a></span></span><span class="code" data-ice="signature">: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></span>
         </p>
       </div>
       <div>
@@ -191,6 +192,96 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         
         <div data-ice="description"><p>The type of parsed <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> objects.</p>
 </div>
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+</tbody>
+</table>
+<table class="summary" data-ice="summary">
+  <thead><tr><td data-ice="title" colspan="3">Private Members</td></tr></thead>
+  <tbody>
+  
+  <tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">private</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-generator">generator</a></span></span><span class="code" data-ice="signature">: <span>*</span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+<tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">private</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-initializer">initializer</a></span></span><span class="code" data-ice="signature">: <span>*</span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        
+      </div>
+    </td>
+    <td>
+      
+      
+    </td>
+  </tr>
+<tr data-ice="target">
+    <td>
+      <span class="access" data-ice="access">private</span>
+      
+      
+      
+      <span class="override" data-ice="override"></span>
+    </td>
+    <td>
+      <div>
+        <p>
+          
+          
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-member-mutator">mutator</a></span></span><span class="code" data-ice="signature">: <span>*</span></span>
+        </p>
+      </div>
+      <div>
+        
+        
+        
       </div>
     </td>
     <td>
@@ -218,7 +309,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-add">add</a></span></span><span data-ice="signature">(): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-add">add</a></span></span><span class="code" data-ice="signature">(): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
       <div>
@@ -246,7 +338,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-elementType">elementType</a></span></span><span data-ice="signature">(type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-elementType">elementType</a></span></span><span class="code" data-ice="signature">(type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
       <div>
@@ -274,7 +367,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-initialize">initialize</a></span></span><span data-ice="signature">(initializer: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-initialize">initialize</a></span></span><span class="code" data-ice="signature">(initializer: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
       <div>
@@ -302,7 +396,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-mutate">mutate</a></span></span><span data-ice="signature">(mutator: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-mutate">mutate</a></span></span><span class="code" data-ice="signature">(mutator: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
       <div>
@@ -330,7 +425,8 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
         <p>
           
           
-          <span data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-regexp">regexp</a></span></span><span data-ice="signature">(regexp: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+          
+          <span class="code" data-ice="name"><span><a href="class/src/parser-builder.js~ParserBuilder.html#instance-method-regexp">regexp</a></span></span><span class="code" data-ice="signature">(regexp: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
         </p>
       </div>
       <div>
@@ -363,7 +459,7 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
     
     
     
-    <span data-ice="name">constructor</span><span data-ice="signature">(document: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span>, type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>)</span>
+    <span class="code" data-ice="name">constructor</span><span class="code" data-ice="signature">(document: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span>, type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>)</span>
     <span class="right-info">
       
       
@@ -388,15 +484,15 @@ document.buildParser(&apos;MarkdownTitle&apos;).regexp(/^(#+)\s*(.+)$/gm).mutate
     <tbody>
     
     <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">document</td>
-      <td data-ice="type"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">document</td>
+      <td data-ice="type" class="code"><span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></td>
       <td data-ice="appendix"></td>
       <td data-ice="description"><p>The document to add the parser to.</p>
 </td>
     </tr>
 <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">type</td>
-      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">type</td>
+      <td data-ice="type" class="code"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></td>
       <td data-ice="appendix"><ul><li>optional</li></ul></td>
       <td data-ice="description"><p>An optional type that will be set on parsed <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> objects.
 This can be useful to distinguish between different element types since all elements parsed by this build&apos;s parser will be instances of the same <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> subclass.</p>
@@ -435,7 +531,7 @@ This can be useful to distinguish between different element types since all elem
     
     
     
-    <span data-ice="name">document</span><span data-ice="signature">: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
+    <span class="code" data-ice="name">document</span><span class="code" data-ice="signature">: <span><a href="class/src/document.js~TextDocument.html">TextDocument</a></span></span>
     <span class="right-info">
       
       
@@ -479,7 +575,7 @@ This can be useful to distinguish between different element types since all elem
     
     
     
-    <span data-ice="name">type</span><span data-ice="signature">: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></span>
+    <span class="code" data-ice="name">type</span><span class="code" data-ice="signature">: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></span>
     <span class="right-info">
       
       
@@ -515,6 +611,137 @@ This can be useful to distinguish between different element types since all elem
   
   
 </div>
+<h2 data-ice="title">Private Members</h2>
+
+<div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="instance-member-generator">
+    <span class="access" data-ice="access">private</span>
+    
+    
+    
+    
+    
+    <span class="code" data-ice="name">generator</span><span class="code" data-ice="signature">: <span>*</span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/parser-builder.js.html#lineNumber59">source</a></span></span>
+    </span>
+  </h3>
+
+  
+  
+  
+  
+
+  
+
+  <div data-ice="properties">
+</div>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+</div>
+<div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="instance-member-initializer">
+    <span class="access" data-ice="access">private</span>
+    
+    
+    
+    
+    
+    <span class="code" data-ice="name">initializer</span><span class="code" data-ice="signature">: <span>*</span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/parser-builder.js.html#lineNumber92">source</a></span></span>
+    </span>
+  </h3>
+
+  
+  
+  
+  
+
+  
+
+  <div data-ice="properties">
+</div>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+</div>
+<div class="detail" data-ice="detail">
+  <h3 data-ice="anchor" id="instance-member-mutator">
+    <span class="access" data-ice="access">private</span>
+    
+    
+    
+    
+    
+    <span class="code" data-ice="name">mutator</span><span class="code" data-ice="signature">: <span>*</span></span>
+    <span class="right-info">
+      
+      
+      <span data-ice="source"><span><a href="file/src/parser-builder.js.html#lineNumber107">source</a></span></span>
+    </span>
+  </h3>
+
+  
+  
+  
+  
+
+  
+
+  <div data-ice="properties">
+</div>
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+  
+</div>
 </div>
 <div data-ice="methodDetails"><h2 data-ice="title">Public Methods</h2>
 
@@ -526,7 +753,7 @@ This can be useful to distinguish between different element types since all elem
     
     
     
-    <span data-ice="name">add</span><span data-ice="signature">(): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+    <span class="code" data-ice="name">add</span><span class="code" data-ice="signature">(): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
     <span class="right-info">
       
       
@@ -550,7 +777,7 @@ This can be useful to distinguish between different element types since all elem
     <table>
       <tbody>
         <tr>
-          <td class="return-type" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
+          <td class="return-type code" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
           <td class="return-desc" data-ice="returnDescription"><p>This builder.</p>
 </td>
         </tr>
@@ -583,7 +810,7 @@ This can be useful to distinguish between different element types since all elem
     
     
     
-    <span data-ice="name">elementType</span><span data-ice="signature">(type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+    <span class="code" data-ice="name">elementType</span><span class="code" data-ice="signature">(type: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
     <span class="right-info">
       
       
@@ -609,8 +836,8 @@ This can be useful to distinguish between different element types since all elem
     <tbody>
     
     <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">type</td>
-      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">type</td>
+      <td data-ice="type" class="code"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></span></td>
       <td data-ice="appendix"></td>
       <td data-ice="description"><p>The type to set on parsed <span><a href="class/src/element.js~TextElement.html">TextElement</a></span> objects.</p>
 </td>
@@ -625,7 +852,7 @@ This can be useful to distinguish between different element types since all elem
     <table>
       <tbody>
         <tr>
-          <td class="return-type" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
+          <td class="return-type code" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
           <td class="return-desc" data-ice="returnDescription"><p>This builder.</p>
 </td>
         </tr>
@@ -658,7 +885,7 @@ This can be useful to distinguish between different element types since all elem
     
     
     
-    <span data-ice="name">initialize</span><span data-ice="signature">(initializer: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+    <span class="code" data-ice="name">initialize</span><span class="code" data-ice="signature">(initializer: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
     <span class="right-info">
       
       
@@ -684,8 +911,8 @@ It will be bound to the parsed object.</p>
     <tbody>
     
     <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">initializer</td>
-      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">initializer</td>
+      <td data-ice="type" class="code"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span></td>
       <td data-ice="appendix"></td>
       <td data-ice="description"><p>An initializer function.</p>
 </td>
@@ -700,7 +927,7 @@ It will be bound to the parsed object.</p>
     <table>
       <tbody>
         <tr>
-          <td class="return-type" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
+          <td class="return-type code" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
           <td class="return-desc" data-ice="returnDescription"><p>This builder.</p>
 </td>
         </tr>
@@ -733,7 +960,7 @@ It will be bound to the parsed object.</p>
     
     
     
-    <span data-ice="name">mutate</span><span data-ice="signature">(mutator: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+    <span class="code" data-ice="name">mutate</span><span class="code" data-ice="signature">(mutator: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
     <span class="right-info">
       
       
@@ -759,8 +986,8 @@ It will be bound to the parsed object.</p>
     <tbody>
     
     <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">mutator</td>
-      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">mutator</td>
+      <td data-ice="type" class="code"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function">function</a></span></td>
       <td data-ice="appendix"></td>
       <td data-ice="description"><p>A mutator function.</p>
 </td>
@@ -775,7 +1002,7 @@ It will be bound to the parsed object.</p>
     <table>
       <tbody>
         <tr>
-          <td class="return-type" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
+          <td class="return-type code" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
           <td class="return-desc" data-ice="returnDescription"><p>This builder.</p>
 </td>
         </tr>
@@ -808,7 +1035,7 @@ It will be bound to the parsed object.</p>
     
     
     
-    <span data-ice="name">regexp</span><span data-ice="signature">(regexp: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
+    <span class="code" data-ice="name">regexp</span><span class="code" data-ice="signature">(regexp: <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span>): <span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></span>
     <span class="right-info">
       
       
@@ -834,8 +1061,8 @@ It will be bound to the parsed object.</p>
     <tbody>
     
     <tr data-ice="property" data-depth="0">
-      <td data-ice="name" data-depth="0">regexp</td>
-      <td data-ice="type"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span></td>
+      <td data-ice="name" class="code" data-depth="0">regexp</td>
+      <td data-ice="type" class="code"><span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp">RegExp</a></span></td>
       <td data-ice="appendix"></td>
       <td data-ice="description"><p>The regular expression to use to find text elements.</p>
 </td>
@@ -850,7 +1077,7 @@ It will be bound to the parsed object.</p>
     <table>
       <tbody>
         <tr>
-          <td class="return-type" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
+          <td class="return-type code" data-ice="returnType"><span><a href="class/src/parser-builder.js~ParserBuilder.html">ParserBuilder</a></span></td>
           <td class="return-desc" data-ice="returnDescription"><p>This builder.</p>
 </td>
         </tr>
@@ -879,7 +1106,7 @@ It will be bound to the parsed object.</p>
 </div>
 
 <footer class="footer">
-  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.5.2)</span><img src="./image/esdoc-logo-mini-black.png"></a>
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(1.1.0)</span><img src="./image/esdoc-logo-mini-black.png"></a>
 </footer>
 
 <script src="script/search_index.js"></script>
