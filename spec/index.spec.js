@@ -1,7 +1,7 @@
 require('core-js/stable');
+const { expect } = require('chai');
 
 const { TextDocument } = require('../src');
-const { expect } = require('./utils');
 
 describe('mutxtor', () => {
   it('should work', async () => {
