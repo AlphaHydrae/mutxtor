@@ -11,7 +11,7 @@
 
 ## Requirements
 
-* [Node.js][node] 14+
+* [Node.js][node] 10+
 
 
 

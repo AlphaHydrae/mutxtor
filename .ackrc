@@ -1,2 +1,3 @@
 --ignore-dir=docs
 --ignore-dir=lib
+--ignore-dir=.nyc_output
