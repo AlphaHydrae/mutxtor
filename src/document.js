@@ -1,4 +1,4 @@
-import { defaults, each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
+import { each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, reject, sortedIndexBy } from 'lodash';
 import EventEmitter from 'events';
 import { fn as isGeneratorFunction } from 'is-generator';
 

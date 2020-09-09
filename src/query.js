@@ -1,4 +1,4 @@
-import { constant, every, isFunction, isPlainObject, matches, matchesProperty, some } from 'lodash';
+import { every, isFunction, isPlainObject, matches, matchesProperty, some } from 'lodash';
 
 const ASC = Symbol('asc');
 const DESC = Symbol('desc');
