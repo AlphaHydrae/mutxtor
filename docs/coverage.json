@@ -7,11 +7,11 @@
       "expectCount": 29,
       "actualCount": 24,
       "undocumentLines": [
-        366,
-        380,
-        386,
-        417,
-        421
+        365,
+        379,
+        385,
+        416,
+        420
       ]
     },
     "src/element.configurable.js": {
