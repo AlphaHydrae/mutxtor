@@ -39,7 +39,7 @@
   "dependencies": {
     "babel-polyfill": "^6.22.0",
     "is-generator": "^1.0.3",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.20"
   },
   "devDependencies": {
     "babel-cli": "^6.22.2",
@@ -48,12 +48,12 @@
     "concurrently": "^5.3.0",
     "esdoc": "^1.1.0",
     "esdoc-standard-plugin": "^1.0.0",
-    "jshint": "^2.9.4",
+    "jshint": "^2.12.0",
     "live-server": "^1.2.0",
-    "onchange": "^3.2.1",
-    "rimraf": "^2.5.4"
+    "onchange": "^7.0.2",
+    "rimraf": "^3.0.2"
   },
   "engines": {
-    "node": ">= 4.0.0"
+    "node": ">= 14.0.0"
   }
 }
