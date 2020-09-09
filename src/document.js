@@ -1,7 +1,6 @@
 import { defaults, each, every, find, findLast, includes, isArray, isEmpty, isFunction, last, map, reject, sortedIndexBy } from 'lodash';
 import EventEmitter from 'events';
 import { fn as isGeneratorFunction } from 'is-generator';
-import Promise from 'bluebird';
 
 import SpliceTextMutation from './mutation.splice';
 import TextElement from './element';
