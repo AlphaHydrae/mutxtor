@@ -36,7 +36,8 @@
     "src:lint": "jshint src",
     "src:watch": "onchange \"src/**/*.js\" -- npm run src:build",
     "start": "concurrently \"npm run build\" \"npm run docs\" && npm run watch",
-    "test": "nyc mocha --forbid-only",
+    "test": "nyc mocha",
+    "test:ci": "nyc mocha --forbid-only",
     "test:watch": "mocha --watch"
   },
   "dependencies": {
