@@ -1,5 +1,12 @@
 # https://github.com/istanbuljs/nyc#common-configuration-options
 all: true
+exclude:
+  - coverage
+  - dist
+  - docs
+  - node_modules
+  - .nyc_output
+  - types
 include:
   - spec
   - src

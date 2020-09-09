@@ -1,19 +1,17 @@
 # https://github.com/mochajs/mocha/blob/master/example/config/.mocharc.yml
 extension:
-  - js
-ignore:
+  - ts
+ignore: &ignore
   - coverage
-  - lib
+  - dist
   - node_modules
+  - .nyc_output
   - src
+  - types
 reporter: spec
-require: '@babel/register'
-spec: spec/**/*.spec.js
+require: ts-node/register
+spec: spec/**/*.spec.ts
 watch-files:
-  - spec/**/*.js
-  - src/**/*.js
-watch-ignore:
-  - coverage
-  - lib
-  - node_modules
-  - src
+  - spec/**/*.ts
+  - src/**/*.ts
+watch-ignore: *ignore

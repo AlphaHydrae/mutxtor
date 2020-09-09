@@ -1,7 +1,8 @@
 /coverage
+/dist
 /docs/ast
-/lib
 /config.js
 /node_modules
 /.nyc_output
 /tmp
+/types
