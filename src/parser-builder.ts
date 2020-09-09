@@ -1,5 +1,3 @@
-import { extend } from 'lodash';
-
 import TextDocument, { TextDocumentGeneratorFactory } from './document';
 import TextElement from './element';
 import ConfigurableTextElement, { TextElementInitializer, TextElementMutator } from './element.configurable';
@@ -37,13 +35,13 @@ export default class ParserBuilder {
    * {@link TextElement} object is mutated. It will be bound to the parsed
    * object.
    */
-  private mutator?: TextElementMutator;
+  private mutator?: TextElementMutator<any>;
 
   /**
    * An initializer function that will be invoked for each parsed
    * {@link TextElement} object. It will be bound to the parsed object.
    */
-  private initializer?: TextElementInitializer;
+  private initializer?: TextElementInitializer<any>;
 
   /**
    * The type of parsed {@link TextElement} objects.
@@ -106,7 +104,7 @@ export default class ParserBuilder {
    * @param {function} initializer - An initializer function.
    * @returns {ParserBuilder} This builder.
    */
-  initialize(initializer: (this: ConfigurableTextElement, data: any) => void) {
+  initialize(initializer: (this: ConfigurableTextElement<any>, data: any) => void) {
     this.initializer = initializer;
     return this;
   }
@@ -119,7 +117,7 @@ export default class ParserBuilder {
    * @param mutator A mutator function.
    * @returns This builder.
    */
-  mutate(mutator: TextElementMutator) {
+  mutate(mutator: TextElementMutator<any>) {
     this.mutator = mutator;
     return this;
   }
@@ -140,9 +138,9 @@ export default class ParserBuilder {
 
   private createElement(start: number, text: string, data: any) {
     const { initializer, mutator, type } = this;
-    extend(data, { initializer });
-    const element = new ConfigurableTextElement(this.document, start, text, data);
-    extend(element, { mutator, type });
+    const element = new ConfigurableTextElement(this.document, start, text, { data, initializer });
+    element.mutator = mutator;
+    element.type = type;
     return element;
   }
 

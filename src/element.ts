@@ -40,7 +40,12 @@ import { stringify } from './utils';
  * about the elements, such as the titles' contents or level in this case.
  */
 export default class TextElement extends TextRange {
+
+  /**
+   * The document in which this text element is located.
+   */
   readonly document: TextDocument;
+
   private readonly documentListeners: Record<string, Array<(arg: any) => void>>;
 
   /**
@@ -56,15 +61,7 @@ export default class TextElement extends TextRange {
     // TODO: validate
     super(start, start + text.length);
 
-    /**
-     * The document in which this text element is located.
-     * @type {TextDocument}
-     */
     this.document = document;
-
-    /**
-     * @access private
-     */
     this.documentListeners = {};
 
     // Keep track of document mutations.
