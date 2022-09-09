@@ -12,7 +12,7 @@
 
 ## Requirements
 
-* [Node.js][node] 10+
+* [Node.js][node] 18+
 
 
 
